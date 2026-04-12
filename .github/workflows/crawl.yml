@@ -1,0 +1,30 @@
+name: Crawl VanBan Bot
+
+on:
+  schedule:
+    - cron: '*/30 * * * *'  # Mỗi 30 phút
+  workflow_dispatch:         # Chạy thủ công
+
+jobs:
+  crawl:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+    
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Install Playwright browsers
+      run: npx playwright install chromium
+    
+    - name: Run crawl script
+      run: node scripts/crawl.js
+      env:
+        VPDT_USERNAME: ${{ secrets.VPDT_USERNAME }}
+        VPDT_PASSWORD: ${{ secrets.VPDT_PASSWORD }}
