@@ -1,0 +1,24 @@
+{
+  "name": "windsurf-vanban-bot",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nmtric3docbinhkieu/windsurf-vanban-bot.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/nmtric3docbinhkieu/windsurf-vanban-bot/issues"
+  },
+  "homepage": "https://github.com/nmtric3docbinhkieu/windsurf-vanban-bot#readme",
+  "dependencies": {
+    "playwright": "^1.59.1"
+  }
+}
