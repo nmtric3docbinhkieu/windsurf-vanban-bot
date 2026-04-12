@@ -10,9 +10,12 @@ async function crawl() {
   
   try {
     console.log('🔐 Đang đăng nhập...');
-    await page.goto('https://vpdt.dongthap.gov.vn');
-    await page.fill('input[name="087086001224"]', USERNAME);
-    await page.fill('input[name="Dongthap@123"]', PASSWORD);
+    await page.setExtraHTTPHeaders({
+  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+});
+await page.goto('https://vpdt.dongthap.gov.vn', { timeout: 60000 });
+    await page.fill('input[name="username"]', USERNAME);
+    await page.fill('input[name="password"]', PASSWORD);
     await page.click('button[type="submit"]');
     await page.waitForNavigation();
     
