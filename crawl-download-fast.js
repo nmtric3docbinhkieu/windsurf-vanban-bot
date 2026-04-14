@@ -400,154 +400,269 @@ async function crawlAndDownload() {
         vanBanMoiCount++;
         
         // Click vào văn bản để xem chi tiết
-        if (vanBan.hasLink) {
-          console.log('   Click vào văn bản để xem chi tiết...');
+        console.log('   Click vào trích yếu để xem chi tiết...');
+        
+        // Tìm link trích yếu và click bằng Playwright
+        let linkFound = false;
+        try {
+          const linkHandle = await page.evaluateHandle((soHieu) => {
+            const rows = document.querySelectorAll('.mat-mdc-row, .mat-row, [role="row"], tr');
             
-          // Click bằng locator cho ổn định hơn
-          try {
-            await page.locator(':scope').locator('a').first().click();
-          } catch (e) {
-            // Fallback: dùng evaluate
-            await page.evaluate((element) => {
-              const link = element.querySelector('a');
-              if (link) link.click();
-            }, vanBan.element);
-          }
-          
-          await page.waitForTimeout(3000);
-          
-          // Dùng evaluate để tìm file đính kèm nhanh
-          const fileData = await page.evaluate(() => {
-            const files = [];
-            
-            // Chụp màn hình debug
-            console.log('Đang tìm file đính kèm...');
-            
-            // Tìm tất cả các button có more_vert icon
-            const moreVertButtons = document.querySelectorAll('button, mat-icon');
-            
-            for (const btn of moreVertButtons) {
-              const btnText = btn.textContent || btn.innerText || '';
-              const btnTitle = btn.title || btn.getAttribute('aria-label') || '';
+            for (const row of rows) {
+              const rowText = row.textContent || row.innerText || '';
               
-              // Kiểm tra có phải more_vert không
-              if (btnText.includes('more_vert') || btnTitle.includes('more') || 
-                  btnText.includes('more_horiz') || btn.querySelector('.material-icons')) {
+              if (rowText.includes(soHieu)) {
+                const links = row.querySelectorAll('a');
                 
-                // Tìm row cha của button
-                let parent = btn.parentElement;
-                while (parent && parent.tagName !== 'TR') {
-                  parent = parent.parentElement;
-                }
-                
-                if (parent) {
-                  const rowText = parent.textContent || parent.innerText || '';
-                  
-                  // Kiểm tra row có chứa file không
-                  if (rowText.includes('.pdf') || rowText.includes('.doc') || 
-                      rowText.includes('Tải') || rowText.includes('File')) {
-                    
-                    files.push({
-                      element: parent,
-                      button: btn,
-                      hasMoreVert: true
-                    });
+                for (const link of links) {
+                  const linkText = link.textContent || link.innerText || '';
+                  if (linkText.length > 20 && !linkText.match(/^\d+\/\w+/)) {
+                    return link;
                   }
                 }
               }
             }
+            return null;
+          }, vanBan.soHieu);
+          
+          if (linkHandle) {
+            console.log('   Đang click link trích yếu...');
+            await linkHandle.click();
+            linkFound = true;
+          }
+        } catch (e) {
+          console.log(`   Lỗi khi tìm/click link: ${e.message}`);
+        }
+        
+        if (!linkFound) {
+          console.log('   -> Không tìm thấy link để click, bỏ qua.');
+          continue;
+        }
+        
+        // Đợi trang chi tiết load
+        console.log('   Đợi trang chi tiết load...');
+        await page.waitForTimeout(5000);
+        
+        // Kiểm tra URL có đúng không
+        const currentUrl = page.url();
+        if (!currentUrl.includes('document-process/info')) {
+          console.log(`   -> URL không đúng: ${currentUrl}`);
+          continue;
+        }
+        console.log(`   -> Đã vào trang chi tiết`);
+        
+        // Đợi table xuất hiện (Angular có thể render chậm)
+        console.log('   Đợi bảng file xuất hiện...');
+        try {
+          await page.waitForSelector('table', { timeout: 10000 });
+        } catch (e) {
+          console.log('   -> Không tìm thấy table sau 10s, thử tiếp...');
+        }
+        await page.waitForTimeout(2000);
+        
+        // Tìm và tải các file đính kèm
+        console.log('   Tìm bảng FILE VĂN BẢN...');
+        
+        // Tìm số lượng file và danh sách file
+        const fileListInfo = await page.evaluate(() => {
+          const result = {
+            fileCount: 0,
+            files: []
+          };
+          
+          // Tìm text "FILE VĂN BẢN (X)"
+          const bodyText = document.body.textContent || '';
+          const fileMatch = bodyText.match(/FILE VĂN BẢN\s*\((\d+)\)/i);
+          if (fileMatch) {
+            result.fileCount = parseInt(fileMatch[1]);
+          }
+          
+          // Tìm bảng file đính kèm - dùng mat-table (Angular Material)
+          const allTables = document.querySelectorAll('mat-table, .mat-table, .mat-mdc-table, table');
+          
+          for (let t = 0; t < allTables.length; t++) {
+            const table = allTables[t];
+            const tableText = table.textContent || '';
             
-            // Nếu không tìm thấy, thử cách khác
-            if (files.length === 0) {
-              const rows = document.querySelectorAll('tr');
-              for (const row of rows) {
-                const rowText = row.textContent || row.innerText || '';
+            // Bảng file thường có các extension file
+            if (tableText.includes('.pdf') || tableText.includes('.doc') || 
+                tableText.includes('.xls') || tableText.includes('.docx') ||
+                tableText.includes('.xlsx')) {
+              
+              // Tìm các row trong mat-table (mat-row) hoặc tr thông thường
+              const rows = table.querySelectorAll('mat-row, .mat-row, tr');
+              
+              for (let i = 0; i < rows.length; i++) {
+                const row = rows[i];
+                const rowText = row.textContent || '';
                 
-                if (rowText.includes('.pdf') || rowText.includes('.doc') || 
-                    rowText.includes('Tải xuống') || rowText.includes('File đính kèm')) {
+                // Bỏ qua header row
+                if (rowText.includes('Tên file') || rowText.includes('STT') || 
+                    rowText.includes('Tên tài liệu') || rowText.includes('#')) {
+                  continue;
+                }
+                
+                // Kiểm tra row có chứa file không (có extension)
+                if (rowText.match(/\.(pdf|doc|docx|xls|xlsx|zip|rar)/i)) {
+                  // Lấy tên file từ row - tìm text chứa extension
+                  const fileNameMatch = rowText.match(/[^\n\t]+\.(pdf|doc|docx|xls|xlsx|zip|rar)/i);
+                  const fileName = fileNameMatch ? fileNameMatch[0].trim().split(/\s+/)[0] : `file-${result.files.length + 1}`;
                   
-                  const buttons = row.querySelectorAll('button, mat-icon');
-                  for (const btn of buttons) {
-                    const btnText = btn.textContent || btn.innerText || '';
-                    if (btnText.includes('more') || btnText.includes('vert')) {
-                      files.push({
-                        element: row,
-                        button: btn,
-                        hasMoreVert: true
-                      });
-                      break;
+                  result.files.push({
+                    index: result.files.length + 1,
+                    fileName: fileName,
+                    rowIndex: i,
+                    tableIndex: t
+                  });
+                }
+              }
+            }
+          }
+          
+          return result;
+        });
+        
+        console.log(`   Tìm thấy ${fileListInfo.fileCount} file (phát hiện ${fileListInfo.files.length} file trong bảng)`);
+        
+        // Tải từng file
+        for (const fileInfo of fileListInfo.files) {
+          try {
+            console.log(`   File ${fileInfo.index} (${fileInfo.fileName}): Đang tải...`);
+            
+            // Click vào dấu 3 chấm của file thứ fileInfo.index
+            const moreBtnClicked = await page.evaluate((targetIndex) => {
+              // Dùng mat-table (Angular Material)
+              const tables = document.querySelectorAll('mat-table, .mat-table, .mat-mdc-table, table');
+              
+              for (const table of tables) {
+                const tableText = table.textContent || '';
+                
+                if (tableText.includes('.pdf') || tableText.includes('.doc') || 
+                    tableText.includes('.xls') || tableText.includes('.docx')) {
+                  
+                  // Dùng mat-row hoặc tr
+                  const rows = table.querySelectorAll('mat-row, .mat-row, tr');
+                  let fileCount = 0;
+                  
+                  for (const row of rows) {
+                    const rowText = row.textContent || '';
+                    
+                    // Bỏ qua header
+                    if (rowText.includes('Tên file') || rowText.includes('STT') ||
+                        rowText.includes('Tên tài liệu') || rowText.includes('#')) {
+                      continue;
+                    }
+                    
+                    // Kiểm tra row có phải file không
+                    if (rowText.match(/\.(pdf|doc|docx|xls|xlsx|zip|rar)/i)) {
+                      fileCount++;
+                      
+                      if (fileCount === targetIndex) {
+                        // Tìm button có icon more_vert (dấu 3 chấm) trong row
+                        const buttons = row.querySelectorAll('button');
+                        
+                        for (const btn of buttons) {
+                          const btnText = btn.textContent || btn.innerText || '';
+                          const ariaLabel = btn.getAttribute('aria-label') || '';
+                          
+                          // Chỉ click nút có more_vert hoặc aria-label chứa 'more'
+                          if (btnText.includes('more_vert') || 
+                              btnText.includes('more_horiz') ||
+                              ariaLabel.toLowerCase().includes('more') ||
+                              btn.querySelector('mat-icon')?.textContent?.includes('more')) {
+                            btn.click();
+                            return true;
+                          }
+                        }
+                      }
                     }
                   }
                 }
               }
+              return false;
+            }, fileInfo.index);
+            
+            if (!moreBtnClicked) {
+              console.log(`   -> Không tìm thấy nút 3 chấm cho file ${fileInfo.index}`);
+              continue;
             }
             
-            return files;
-          });
-          
-          console.log(`   Tìm thấy ${fileData.length} file đính kèm`);
-          
-          // Tải từng file
-          for (let j = 0; j < fileData.length; j++) {
-            try {
-              console.log(`   File ${j + 1}: Đang tải...`);
-              
-              // Click more_vert bằng evaluate - dùng button đã tìm thấy
-              await page.evaluate((button) => {
-                if (button) button.click();
-              }, fileData[j].button);
-              
-              await page.waitForTimeout(500);
-              
-              // Click menu download
-              const downloadPromise = page.waitForEvent('download');
-              
-              const downloadClicked = await page.evaluate(() => {
-                const menuItems = document.querySelectorAll('mat-menu-item, [role="menuitem"], button');
-                
-                for (const item of menuItems) {
-                  const text = item.textContent || item.innerText || '';
-                  if (text.includes('Tải') || text.includes('xuống')) {
-                    item.click();
-                    return true;
-                  }
-                }
-                return false;
+            // Đợi menu dropdown hiện ra
+            await page.waitForTimeout(800);
+            
+            // Click "Tải xuống tệp tin" - timeout 60s cho file lớn
+            const downloadPromise = page.waitForEvent('download', { timeout: 60000 });
+            
+            const downloadClicked = await page.evaluate(() => {
+              // Debug: liệt kê tất cả menu items
+              const allMenuItems = document.querySelectorAll('mat-menu-item, [role="menuitem"], .mat-mdc-menu-item');
+              const menuDebug = [];
+              allMenuItems.forEach((item, idx) => {
+                menuDebug.push({
+                  index: idx,
+                  text: item.textContent || item.innerText || '',
+                  tag: item.tagName
+                });
               });
+              console.log('Menu items found:', JSON.stringify(menuDebug));
               
-              if (downloadClicked) {
-                const download = await downloadPromise;
+              // Tìm menu item "Tải xuống tệp tin" - tìm chính xác
+              for (const item of allMenuItems) {
+                const text = (item.textContent || item.innerText || '').toLowerCase();
                 
-                // Lấy tên file
-                let originalFileName = download.suggestedFilename();
-                if (!originalFileName || originalFileName.includes('tmp')) {
-                  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-                  originalFileName = `${vanBan.soHieu.replace(/[/]/g, '-')}-${timestamp}.pdf`;
+                // Tìm chính xác "tải xuống tệp tin" cho từng file
+                if (text.includes('tải xuống tệp tin') || text.includes('tai xuong tep tin')) {
+                  item.click();
+                  return { clicked: true, option: text };
                 }
-                
-                // Đợi download hoàn tất
-                const tempPath = await download.path();
-                const savePath = path.join(downloadsDir, originalFileName);
-                await download.saveAs(savePath);
-                
-                if (fs.existsSync(savePath)) {
-                  const stats = fs.statSync(savePath);
-                  console.log(`   Đã tải thành công: ${originalFileName} (${stats.size} bytes)`);
-                  fileTaiVeCount++;
-                }
-                
-                await page.waitForTimeout(1000);
               }
               
-            } catch (error) {
-              console.error(`   Lỗi khi tải file ${j + 1}: ${error.message}`);
+              // Fallback: thử tìm "tải xuống" đơn giản
+              for (const item of allMenuItems) {
+                const text = (item.textContent || item.innerText || '').toLowerCase();
+                if (text.includes('tải xuống') && !text.includes('tất cả') && !text.includes('toàn bộ')) {
+                  item.click();
+                  return { clicked: true, option: text };
+                }
+              }
+              
+              return { clicked: false };
+            });
+            
+            console.log(`   -> Clicked option: ${JSON.stringify(downloadClicked)}`);
+            
+            if (downloadClicked.clicked) {
+              const download = await downloadPromise;
+              
+              // Lấy tên file gốc từ hệ thống
+              let originalFileName = download.suggestedFilename() || 'download.pdf';
+              const savePath = path.join(downloadsDir, originalFileName);
+              
+              // Lưu file
+              await download.saveAs(savePath);
+              
+              if (fs.existsSync(savePath)) {
+                const stats = fs.statSync(savePath);
+                console.log(`   Đã tải: ${originalFileName} (${stats.size} bytes)`);
+                fileTaiVeCount++;
+              }
+              
+              // Đợi menu đóng
+              await page.waitForTimeout(1000);
+            } else {
+              console.log(`   -> Không tìm thấy option "Tải xuống tệp tin" trong menu`);
             }
+            
+          } catch (error) {
+            console.error(`   Lỗi khi tải file ${fileInfo.index}: ${error.message}`);
           }
-          
-          // Quay lại danh sách
-          await page.goBack();
-          await page.waitForTimeout(1000);
         }
+        
+        // Quay lại danh sách
+        console.log('   Quay lại danh sách văn bản...');
+        await page.goBack();
+        await page.waitForLoadState('networkidle', { timeout: 10000 });
+        await page.waitForTimeout(1500);
         
         // Lưu thông tin văn bản mới vào logs
         const thongTinVanBan = {
