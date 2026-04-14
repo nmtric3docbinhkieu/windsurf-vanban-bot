@@ -1,19 +1,23 @@
 // scripts/crawl.js
 const { chromium } = require('playwright');
 
-const USERNAME = process.env.VPDT_USERNAME;
-const PASSWORD = process.env.VPDT_PASSWORD;
+const USERNAME = '087086001224';
+const PASSWORD = 'Dongthap@123';
 
 async function crawl() {
-  const browser = await chromium.launch({ headless: true });
+  // SỬA: Dùng Chrome thay vì Edge
+  const browser = await chromium.launch({ 
+    headless: false,  // false để nhìn thấy trình duyệt
+    executablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'
+  });
   const page = await browser.newPage();
   
   try {
     console.log('🔐 Đang đăng nhập...');
     await page.setExtraHTTPHeaders({
-  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-});
-await page.goto('https://vpdt.dongthap.gov.vn', { timeout: 60000 });
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+    });
+    await page.goto('https://vpdt.dongthap.gov.vn', { timeout: 60000 });
     await page.fill('input[name="username"]', USERNAME);
     await page.fill('input[name="password"]', PASSWORD);
     await page.click('button[type="submit"]');
