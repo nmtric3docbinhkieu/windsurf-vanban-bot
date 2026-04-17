@@ -1,6 +1,9 @@
 const { chromium } = require('playwright');
 const fs = require('fs');
 const path = require('path');
+require('dotenv').config();
+const { notifyNewVanBan: notifyZalo } = require('./zalo-notify');
+const { notifyNewVanBan: notifyTelegram } = require('./telegram-notify');
 
 const USERNAME = '087086001224';
 const PASSWORD = 'Dongthap@123';
@@ -25,7 +28,7 @@ function loadVanBanDaXuLy() {
 }
 
 // Hàm luu van ban moi vao logs
-function saveVanBanMoi(thongTinVanBan) {
+async function saveVanBanMoi(thongTinVanBan) {
   try {
     const logsPath = path.join(__dirname, '..', 'logs', 'van_ban_den_2025_2026.json');
     let data = { tong_so_van_ban: 0, ngay_xuat_du_lieu: new Date().toISOString().split('T')[0], nguon: "Hệ thống QLVBĐH tỉnh Đồng Tháp - Tab Chờ duyệt", danh_sach_van_ban: [] };
@@ -42,6 +45,13 @@ function saveVanBanMoi(thongTinVanBan) {
       
       fs.writeFileSync(logsPath, JSON.stringify(data, null, 2), 'utf8');
       console.log(`   Da luu van ban moi: ${thongTinVanBan.so_hieu}`);
+      
+      // Gửi thông báo qua cả Zalo và Telegram
+      await Promise.all([
+        notifyZalo(thongTinVanBan),
+        notifyTelegram(thongTinVanBan)
+      ]);
+      
       return true;
     }
   } catch (error) {
@@ -183,7 +193,8 @@ async function crawlAndDownload() {
             
             if (link && !linkElement) {
               linkElement = link;
-              trichYeu = cellText.trim();
+              // Chỉ lấy text từ link, không lấy toàn bộ cell content
+              trichYeu = (link.textContent || link.innerText || '').trim();
             }
             
             const dateMatch = cellText.match(/\d{2}\/\d{2}\/\d{4}/);
@@ -288,20 +299,21 @@ async function crawlAndDownload() {
               for (let i = 0; i < cells.length; i++) {
                 const cellText = cells[i].textContent || cells[i].innerText || '';
                 const link = cells[i].querySelector('a');
-                
+
                 if (link && !linkElement) {
                   linkElement = link;
-                  trichYeu = cellText.trim();
+                  // Chỉ lấy text từ link, không lấy toàn bộ cell content
+                  trichYeu = (link.textContent || link.innerText || '').trim();
                 }
-                
+
                 const dateMatch = cellText.match(/\d{2}\/\d{2}\/\d{4}/);
                 if (dateMatch) ngayBanHanh = dateMatch[0];
-                
+
                 if (cellText.includes('Sở Giáo dục') || cellText.includes('SGDĐT')) {
                   coQuan = cellText.trim();
                 }
               }
-              
+
               // Lấy trích yếu đúng - tìm cell có nội dung tiếng Việt có nghĩa
               for (let i = 0; i < cells.length; i++) {
                 const cellText = cells[i].textContent || cells[i].innerText || '';
@@ -672,7 +684,7 @@ async function crawlAndDownload() {
           co_quan_ban_hanh: vanBan.coQuan || 'Sở Giáo dục và Đào tạo - Tỉnh Đồng Tháp'
         };
         
-        saveVanBanMoi(thongTinVanBan);
+        await saveVanBanMoi(thongTinVanBan);
         
       } catch (error) {
         console.error(`   Lỗi khi xử lý văn bản ${i + 1}: ${error.message}`);
