@@ -3,7 +3,6 @@ const fs = require('fs');
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 const { notifyNewVanBan: notifyZalo } = require('./zalo-notify');
-const { notifyNewVanBan: notifyTelegram } = require('./telegram-notify');
 
 const USERNAME = '087086001224';
 const PASSWORD = 'Dongthap@123';
@@ -40,17 +39,15 @@ async function saveVanBanMoi(thongTinVanBan) {
     // Kiem tra trung lap
     const tonTai = data.danh_sach_van_ban.some(vb => vb.so_hieu === thongTinVanBan.so_hieu);
     if (!tonTai) {
-      data.danh_sach_van_ban.push(thongTinVanBan);
+      // Thêm văn bản mới vào ĐẦU danh sách để dễ xem
+      data.danh_sach_van_ban.unshift(thongTinVanBan);
       data.tong_so_van_ban = data.danh_sach_van_ban.length;
       
       fs.writeFileSync(logsPath, JSON.stringify(data, null, 2), 'utf8');
       console.log(`   Da luu van ban moi: ${thongTinVanBan.so_hieu}`);
       
-      // Gửi thông báo qua cả Zalo và Telegram
-      await Promise.all([
-        notifyZalo(thongTinVanBan),
-        notifyTelegram(thongTinVanBan)
-      ]);
+      // Gửi thông báo qua Zalo OA
+      await notifyZalo(thongTinVanBan);
       
       return true;
     }
