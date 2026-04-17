@@ -1,7 +1,7 @@
 const { chromium } = require('playwright');
 const fs = require('fs');
 const path = require('path');
-require('dotenv').config();
+require('dotenv').config({ path: path.join(__dirname, '.env') });
 const { notifyNewVanBan: notifyZalo } = require('./zalo-notify');
 const { notifyNewVanBan: notifyTelegram } = require('./telegram-notify');
 

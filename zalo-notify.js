@@ -1,5 +1,6 @@
 const axios = require('axios');
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '.env') });
 
 const OA_ACCESS_TOKEN = process.env.ZALO_OA_TOKEN;
 const USER_ID = process.env.ZALO_USER_ID; // Chỉ gửi cho bạn
