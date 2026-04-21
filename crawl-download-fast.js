@@ -2,7 +2,7 @@ const { chromium } = require('playwright');
 const fs = require('fs');
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
-const { notifyNewVanBan: notifyZalo } = require('./zalo-notify');
+const { notifyNewVanBan: notifyTelegram } = require('./telegram-notify');
 
 const USERNAME = '087086001224';
 const PASSWORD = 'Dongthap@123';
@@ -46,8 +46,8 @@ async function saveVanBanMoi(thongTinVanBan) {
       fs.writeFileSync(logsPath, JSON.stringify(data, null, 2), 'utf8');
       console.log(`   Da luu van ban moi: ${thongTinVanBan.so_hieu}`);
       
-      // Gửi thông báo qua Zalo OA
-      await notifyZalo(thongTinVanBan);
+      // Gửi thông báo qua Telegram
+      await notifyTelegram(thongTinVanBan);
       
       return true;
     }
@@ -411,10 +411,10 @@ async function crawlAndDownload() {
         // Click vào văn bản để xem chi tiết
         console.log('   Click vào trích yếu để xem chi tiết...');
         
-        // Tìm link trích yếu và click bằng Playwright
-        let linkFound = false;
+        // Tìm link và navigate trực tiếp
+        let detailUrl = null;
         try {
-          const linkHandle = await page.evaluateHandle((soHieu) => {
+          detailUrl = await page.evaluate((soHieu) => {
             const rows = document.querySelectorAll('.mat-mdc-row, .mat-row, [role="row"], tr');
             
             for (const row of rows) {
@@ -424,9 +424,9 @@ async function crawlAndDownload() {
                 const links = row.querySelectorAll('a');
                 
                 for (const link of links) {
-                  const linkText = link.textContent || link.innerText || '';
-                  if (linkText.length > 20 && !linkText.match(/^\d+\/\w+/)) {
-                    return link;
+                  // Tìm link có href chứa /info/ (trang chi tiết)
+                  if (link.href && link.href.includes('/info/')) {
+                    return link.href;
                   }
                 }
               }
@@ -434,23 +434,17 @@ async function crawlAndDownload() {
             return null;
           }, vanBan.soHieu);
           
-          if (linkHandle) {
-            console.log('   Đang click link trích yếu...');
-            await linkHandle.click();
-            linkFound = true;
+          if (detailUrl) {
+            console.log('   Đang vào trang chi tiết...');
+            await page.goto(detailUrl, { waitUntil: 'networkidle', timeout: 15000 });
+          } else {
+            console.log('   -> Không tìm thấy link chi tiết.');
+            continue;
           }
         } catch (e) {
-          console.log(`   Lỗi khi tìm/click link: ${e.message}`);
-        }
-        
-        if (!linkFound) {
-          console.log('   -> Không tìm thấy link để click, bỏ qua.');
+          console.log(`   Lỗi khi vào trang chi tiết: ${e.message}`);
           continue;
         }
-        
-        // Đợi trang chi tiết load
-        console.log('   Đợi trang chi tiết load...');
-        await page.waitForTimeout(5000);
         
         // Kiểm tra URL có đúng không
         const currentUrl = page.url();
