@@ -72,7 +72,7 @@ async function crawlAndDownload() {
   
   try {
     console.log('1. Chuẩn bị thư mục download...');
-    const downloadsDir = path.join(process.cwd(), 'van-ban-den');
+    const downloadsDir = path.join(__dirname, '..', 'van-ban-den');
     if (!fs.existsSync(downloadsDir)) {
       fs.mkdirSync(downloadsDir, { recursive: true });
     }

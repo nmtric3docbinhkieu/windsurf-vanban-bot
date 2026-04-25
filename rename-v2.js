@@ -24,9 +24,9 @@ const { readPDF } = require('./pdf-reader');
 // ==================== CONFIG ====================
 
 const CONFIG = {
-  vanBanDenPath: path.join(__dirname, 'van-ban-den'),
-  logPath      : path.join(__dirname, 'logs', 'processed-files.json'),
-  manualPath   : path.join(__dirname, 'logs', 'need-manual.json'),
+  vanBanDenPath: path.join(__dirname, '..', 'van-ban-den'),
+  logPath      : path.join(__dirname, '..', 'logs', 'processed-files.json'),
+  manualPath   : path.join(__dirname, '..', 'logs', 'need-manual.json'),
   dryRun       : process.argv.includes('--dry-run'),
   force        : process.argv.includes('--force'),
 };
@@ -80,7 +80,7 @@ function removeVietnameseTones(str) {
 }
 
 function sanitize(str) {
-  return str.replace(/[<>:"/\\|?*]/g, '').replace(/\s+/g, '_').replace(/_+/g, '_').trim();
+  return str.replace(/[<>:"/\\|?*]/g, '-').replace(/\s+/g, '_').replace(/_+/g, '_').trim();
 }
 
 function shorten(text, maxWords = 20) {
@@ -150,9 +150,9 @@ function extractSoHieu(text) {
         const num = match[1].trim();
         const code = match[2].trim();
         // Nếu số để trống, chỉ trả về code
-        return num ? `${num}/${code}` : code;
+        return num ? `${num}-${code}` : code;
       }
-      return match[1];
+      return match[1].replace(/\//g, '-');
     }
   }
   return null;
@@ -220,7 +220,7 @@ function validateStep(info) {
 
 function buildNameStep(info, ext) {
   const cleanSoHieu   = sanitize(info.soHieu.replace(/\//g, '-'));
-  const shortTrichYeu = info.trichYeu ? shorten(info.trichYeu) : 'van_ban';
+  const shortTrichYeu = info.trichYeu ? sanitize(shorten(info.trichYeu)) : 'van_ban';
   return `${cleanSoHieu}_${shortTrichYeu}_${info.ngayBanHanh}${ext}`;
 }
 
