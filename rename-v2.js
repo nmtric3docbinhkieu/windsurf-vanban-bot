@@ -35,18 +35,23 @@ const CONFIG = {
 
 const PATTERNS = {
   soHieu: [
-    // OCR pattern: S61849BGDDT-GDPT (số hiệu ở dòng đầu, có thể thiếu dấu /)
-    /S(\d{4,6})([A-ZĐ0-9\-]+)/i,
-    // Số: 292 /KH-SGDĐT  (có khoảng trắng trước / — đặc trưng PDF ký số)
-    /Số[:\s]*\s*(\d{0,4})\s*\/\s*([A-ZĐ0-9][A-ZĐ0-9\-]*)/i,
-    // Fallback: số hiệu dạng đầy đủ không có từ "Số"
-    /(\d{2,4}\/[A-ZĐ0-9\-]+(?:-[A-ZĐ0-9]+)*)/,
+    // Ưu tiên 1: Số: XXX/YYY/ZZZ (dòng Số ở đầu văn bản, đầy đủ)
+    // Chỉ match trên cùng dòng với "Số:" (tránh match trong phần căn cứ)
+    /S[ố][:\s]*([0-9Il]{1,4}\s*\/\s*[0-9Il]{4}\s*\/\s*[A-ZĐ0-9\-]+)/i,
+    // Ưu tiên 2: Số: XXX/YYY (dạng ngắn hơn)
+    /S[ố][:\s]*([0-9Il]{1,4}\s*\/\s*[A-ZĐ0-9\-]+)/i,
+    // Ưu tiên 3: OCR pattern SXXXXXCODE-CODE (số hiệu ở dòng đầu, có thể thiếu dấu /)
+    /S([0-9Il]{4,6})([A-ZĐ0-9\-]+)/i,
+    // Fallback: số hiệu dạng đầy đủ - chỉ dùng khi KHÔNG có từ "Số:" trong text
+    // để tránh match nhầm số hiệu trong phần căn cứ
   ],
   trichYeu: [
     // V/v hoặc Về việc
     /(?:V\/v|Về việc|V\/V)\s+([\s\S]{20,1000})/i,
     // QUYẾT ĐỊNH - lấy nội dung sau dòng QUYẾT ĐỊNH
     /QUYẾT\s+ĐỊNH\s+([\s\S]{20,1000})/i,
+    // THÔNG TƯ, KẾ HOẠCH - lấy nội dung ngay sau tiêu đề (trước khi đến "Căn cứ")
+    /(?:THÔNG\s+TƯ|KẾ\s+HOẠCH)\s+([\s\S]{10,300}?)(?=Căn\s+cứ|Theo|Theodore)/i,
   ],
   ngayThang: [
     // Ưu tiên: "ngày 30 tháng 3 năm 2026"
@@ -138,21 +143,47 @@ async function readFileStep(filePath, ext) {
 // ==================== STEP 3: EXTRACT ====================
 
 function extractSoHieu(text) {
-  const headerText = text.substring(0, 500);
+  // Chỉ tìm trong dòng đầu tiên có "Số:" để tránh match trong phần căn cứ
+  const lines = text.split('\n');
+  let soHieuLine = '';
+  for (const line of lines) {
+    if (line.includes('Số:')) {
+      soHieuLine = line;
+      break;
+    }
+  }
+
+  // Nếu không tìm thấy dòng "Số:", thử tìm dòng có "Số" (cho OCR)
+  if (!soHieuLine) {
+    for (const line of lines) {
+      if (line.includes('Số')) {
+        soHieuLine = line;
+        break;
+      }
+    }
+  }
 
   for (const pattern of PATTERNS.soHieu) {
-    const match = headerText.match(pattern);
+    const match = soHieuLine.match(pattern);
     if (match) {
-      // Pattern OCR: [full, num, code] → "S61849BGDDT-GDPT" → "61849/BGDĐT-GDPT"
-      // Pattern Số: [full, num, code] → "292/KH-SGDĐT" hoặc "/KH-SGDĐT"
-      // Pattern fallback: [full, soHieu] → "292/KH-SGDĐT"
+      // Pattern 1 (đầy đủ): [full, soHieu] → "14/2026/TT-BKHCN"
+      // Pattern 2 (OCR): [full, num, code] → "S61849BGDDT-GDPT" → "61849/BGDĐT-GDPT"
       if (match[2]) {
-        const num = match[1].trim();
+        // Pattern OCR: có 2 groups (num, code)
+        let num = match[1].trim();
         const code = match[2].trim();
+        // Chuyển chữ I/l thành số 1 (xử lý lỗi OCR)
+        num = num.replace(/[Il]/g, '1');
         // Nếu số để trống, chỉ trả về code
         return num ? `${num}-${code}` : code;
       }
-      return match[1].replace(/\//g, '-');
+      // Pattern đầy đủ: chỉ có 1 group (soHieu)
+      let soHieu = match[1].trim();
+      // Chuyển chữ I/l thành số 1 (xử lý lỗi OCR)
+      soHieu = soHieu.replace(/[Il]/g, '1');
+      // Xóa khoảng trắng thừa trong số hiệu
+      soHieu = soHieu.replace(/\s+/g, '');
+      return soHieu.replace(/\//g, '-');
     }
   }
   return null;
