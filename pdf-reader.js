@@ -227,15 +227,23 @@ async function readPDF(filePath, options = {}) {
     const text = await readWithPdftotext(filePath);
 
     if (text.length >= OCR_CONFIG.minTextLength) {
-      // Nếu headerOnly thì chỉ lấy text trước dấu phân trang đầu tiên
-      const finalText = options.headerOnly
-        ? text.split('\f')[0].trim()
-        : text;
+      // Kiểm tra xem text có chứa pattern số hiệu đầy đủ hay không
+      // Pattern phải có dạng: Số: XXX/YYY hoặc XXX/YYY (có số và mã)
+      const hasSoHieu = /Số[:\s]*\s*\d+\/[A-ZĐ0-9\-]+|\d{2,4}\/[A-ZĐ0-9\-]+/i.test(text);
+      
+      if (hasSoHieu) {
+        // Nếu headerOnly thì chỉ lấy text trước dấu phân trang đầu tiên
+        const finalText = options.headerOnly
+          ? text.split('\f')[0].trim()
+          : text;
 
-      return { text: finalText, method: 'pdftotext', pages: null };
+        return { text: finalText, method: 'pdftotext', pages: null };
+      } else {
+        console.log(`   ℹ️  Text không chứa số hiệu (${text.length} ký tự) → chuyển sang OCR`);
+      }
+    } else {
+      console.log(`   ℹ️  Text quá ngắn (${text.length} ký tự) → chuyển sang OCR`);
     }
-
-    console.log(`   ℹ️  Text quá ngắn (${text.length} ký tự) → chuyển sang OCR`);
   }
 
   // Bước 2: OCR (PDF scan hoặc forceOCR)
