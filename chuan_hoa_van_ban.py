@@ -42,6 +42,16 @@ CHUC_VU_KY = "PHÓ HIỆU TRƯỞNG"
 KT_HIEU_TRUONG = "KT. HIỆU TRƯỞNG"
 DIA_DANH = "Đốc Binh Kiều"
 
+# Mapping số hiệu theo loại văn bản
+SO_HIEU_MAP = {
+    "ke_hoach": "/KH-THPTĐBK",
+    "bao_cao": "/BC-THPTĐBK",
+    "quyet_dinh": "/QĐ-THPTĐBK",
+    "to_trinh": "/TTr-THPTĐBK",
+    "bien_ban": "/BB-THPTĐBK",
+    "cong_van": "/THPTĐBK"
+}
+
 # ============================================================
 # HÀM TIỆN ÍCH ĐỊNH DẠNG
 # ============================================================
@@ -371,7 +381,8 @@ def create_receiver_and_signature(doc, noi_nhan_raw):
     run_cv = p_cv.add_run(CHUC_VU_KY)
     set_font(run_cv, size=FONT_SIZE_SIGN, bold=True)
     
-    for _ in range(3):
+    # Thêm 7 dòng trống để tăng khoảng cách chữ ký
+    for _ in range(7):
         p_empty = cell_right.add_paragraph()
         p_empty.paragraph_format.space_before = Pt(0)
         p_empty.paragraph_format.space_after = Pt(0)
@@ -396,8 +407,74 @@ def read_text_from_file(file_path):
     else:
         raise ValueError("Chỉ hỗ trợ file .txt hoặc .docx")
 
-def tao_van_ban_chuan(input_file, output_file, loai, so_ky_hieu, trich_yeu, noi_nhan, ngay_thang=None):
-    noi_dung_tho = read_text_from_file(input_file)
+def clean_content(content):
+    """Lọc bỏ tiêu đề, nơi nhận, ngày tháng và dòng kết thúc khỏi nội dung thô"""
+    lines = content.splitlines()
+    
+    # Bỏ dòng đầu tiên (tiêu đề loại văn bản)
+    if lines and lines[0].strip().upper() in ["KẾ HOẠCH", "QUYẾT ĐỊNH", "BÁO CÁO", "TỜ TRÌNH", "BIÊN BẢN", "CÔNG VĂN"]:
+        lines = lines[1:]
+    
+    # Bỏ dòng thứ hai (tiêu đề trích yếu) nếu có
+    if lines and lines[0].strip():
+        lines = lines[1:]
+    
+    # Bỏ dòng trống tiếp theo
+    if lines and not lines[0].strip():
+        lines = lines[1:]
+    
+    # Tìm và bỏ phần "Nơi nhận:" và nội dung sau đó
+    cleaned_lines = []
+    found_noi_nhan = False
+    for line in lines:
+        if "Nơi nhận:" in line:
+            found_noi_nhan = True
+            continue
+        if found_noi_nhan:
+            continue
+        # Bỏ dòng ngày tháng (cú pháp: địa danh, ngày... tháng... năm...)
+        if re.match(r"^[^,]+,\s*ngày\s+\d+\s+tháng\s+\d+\s+năm\s+\d+", line.strip(), re.IGNORECASE):
+            continue
+        # Loại bỏ "./." và "thống nhất thực hiện" từ cuối dòng nếu có
+        if "./." in line:
+            line = line.replace("./.", "").strip()
+            # Xóa cả "thống nhất thực hiện" nếu có
+            line = re.sub(r",\s*thống\s+nhiên\s+thực\s+hiện\s*$", "", line, flags=re.IGNORECASE).strip()
+        if line.strip():  # Chỉ thêm dòng nếu còn nội dung
+            cleaned_lines.append(line)
+    
+    # Bỏ các dòng trống ở cuối
+    while cleaned_lines and not cleaned_lines[-1].strip():
+        cleaned_lines.pop()
+    
+    return "\n".join(cleaned_lines)
+
+def extract_date_from_content(content):
+    """Trích xuất ngày tháng từ nội dung thô - tìm cú pháp 'địa danh, ngày... tháng... năm...'"""
+    # Tìm cú pháp: địa danh, ngày ... tháng ... năm
+    date_pattern = r"([^,]+),\s*ngày\s+(\d+)\s+tháng\s+(\d+)\s+năm\s+(\d+)"
+    match = re.search(date_pattern, content, re.IGNORECASE)
+    
+    if match:
+        dia_danh = match.group(1).strip()
+        day = match.group(2).zfill(2)
+        month = match.group(3).zfill(2)
+        year = match.group(4)
+        return f"{dia_danh}, ngày {day} tháng {month} năm {year}"
+    return f"{DIA_DANH}, ngày    tháng    năm 2026"
+
+def tao_van_ban_chuan(input_file, output_file, loai, so_ky_hieu=None, trich_yeu="", noi_nhan="", ngay_thang=None):
+    noi_dung_tho_raw = read_text_from_file(input_file)
+    noi_dung_tho = clean_content(noi_dung_tho_raw)
+    
+    # Tự động lấy số hiệu từ mapping nếu không được cung cấp
+    if so_ky_hieu is None:
+        so_ky_hieu = SO_HIEU_MAP.get(loai, "")
+    
+    # Tự động trích xuất ngày tháng từ nội dung nếu không được cung cấp
+    if ngay_thang is None:
+        ngay_thang = extract_date_from_content(noi_dung_tho_raw)
+    
     doc = Document()
     section = doc.sections[0]
     section.page_width = Cm(21.0)

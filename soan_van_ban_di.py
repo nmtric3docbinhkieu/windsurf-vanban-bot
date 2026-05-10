@@ -244,358 +244,59 @@ def _parse_markdown_response(text: str) -> dict:
 # ============================================================
 
 def tao_van_ban_docx(du_lieu: dict, ten_file_goc: str) -> str:
-    """Tạo file .docx văn bản đi theo thể thức hành chính."""
+    """
+    Tạo file .docx văn bản đi theo thể thức hành chính.
+    
+    Orchestration layer: Chuẩn bị metadata và gọi renderer_engine.
+    Không làm styling - đó là trách nhiệm của renderer_engine.
+    """
+    from renderer_engine import render_document, parse_content_to_blocks, clean_content
     
     # Tạo thư mục van-ban-di nếu chưa có
     duong_dan_thu_muc = Path(__file__).parent / THU_MUC_VAN_BAN_DI
     duong_dan_thu_muc.mkdir(parents=True, exist_ok=True)
     
+    # Chuẩn bị metadata từ AI output
     loai = du_lieu.get("loai_van_ban", "cong_van")
     so_ky_hieu = du_lieu.get("so_ky_hieu_goi_y", "/CV-THPTĐBK")
     trich_yeu = du_lieu.get("trich_yeu", "")
     noi_dung  = du_lieu.get("noi_dung", "")
     noi_nhan  = du_lieu.get("noi_nhan", "")
     
-    doc = Document()
+    # Parse nội dung thành structured blocks (AI Parser layer)
+    content_clean = clean_content(noi_dung)
+    blocks = parse_content_to_blocks(content_clean)
     
-    # === Cài đặt trang ===
-    section = doc.sections[0]
-    section.page_width  = Cm(21.0)
-    section.page_height = Cm(29.7)
-    section.left_margin   = Cm(3.0)
-    section.right_margin  = Cm(2.0)
-    section.top_margin    = Cm(2.0)
-    section.bottom_margin = Cm(2.0)
+    # Chuẩn bị metadata cho renderer
+    metadata = {
+        'loai_van_ban': loai.upper() if loai else 'KẾ HOẠCH',
+        'so_ky_hieu': so_ky_hieu,
+        'ngay_thang': 'Đốc Bình Kiều, ngày 10 tháng 5 năm 2026',  # Có thể lấy từ du_lieu
+        'trich_yeu': trich_yeu,
+        'noi_nhan': noi_nhan,
+        'nguoi_ky': 'Nguyễn Minh Trí',  # Có thể lấy từ du_lieu
+        'chuc_vu_ky': 'KT. HIỆU TRƯỞNG\nPHÓ HIỆU TRƯỞNG'  # Có thể lấy từ du_lieu
+    }
     
-    # Set default font size cho Normal style
-    style = doc.styles['Normal']
-    style.font.name = 'Times New Roman'
-    style.font.size = Pt(13)
+    # Lấy template path
+    template_path = Path(__file__).parent / "TEMPLATE.docx"
     
-    def set_font(run, name="Times New Roman", size=13, bold=False, italic=False, color=None):
-        # Set font properties
-        run.font.name = name
-        run.font.bold = bold
-        run.font.italic = italic
-        if color:
-            run.font.color.rgb = RGBColor(*color)
-        
-        # Set size bằng twips (13pt = 260 twips)
-        run.font.size = Pt(size)
-        
-        # Set size bằng XML để đảm bảo áp dụng
-        r = run._r
-        rPr = r.get_or_add_rPr()
-        
-        # Font size (half-points: 13pt = 26)
-        sz = OxmlElement('w:sz')
-        sz.set(qn('w:val'), str(size * 2))
-        rPr.append(sz)
-        szCs = OxmlElement('w:szCs')
-        szCs.set(qn('w:val'), str(size * 2))
-        rPr.append(szCs)
-        
-        # Font tiếng Việt
-        rFonts = OxmlElement('w:rFonts')
-        rFonts.set(qn('w:ascii'), name)
-        rFonts.set(qn('w:hAnsi'), name)
-        rFonts.set(qn('w:eastAsia'), name)
-        rFonts.set(qn('w:cs'), name)
-        rPr.append(rFonts)
-    
-    def add_para(text="", align=WD_ALIGN_PARAGRAPH.LEFT, bold=False,
-                 italic=False, size=13, space_before=0, space_after=6,
-                 color=None):
-        p = doc.add_paragraph()
-        p.alignment = align
-        pf = p.paragraph_format
-        pf.space_before = Pt(space_before)
-        pf.space_after  = Pt(space_after)
-        pf.line_spacing = Pt(18)
-        if text:
-            run = p.add_run(text)
-            set_font(run, size=size, bold=bold, italic=italic, color=color)
-        return p
-    
-    # ===================================================
-    # PHẦN I: QUỐC HIỆU + TIÊU NGỮ (bảng 2 cột)
-    # ===================================================
-    table_header = doc.add_table(rows=1, cols=2)
-    table_header.style = "Table Grid"
-    # Ẩn đường viền
-    for cell in table_header.rows[0].cells:
-        tc = cell._tc
-        tcPr = tc.get_or_add_tcPr()
-        tcBorders = OxmlElement('w:tcBorders')
-        for border_name in ['top', 'left', 'bottom', 'right', 'insideH', 'insideV']:
-            border = OxmlElement(f'w:{border_name}')
-            border.set(qn('w:val'), 'none')
-            tcBorders.append(border)
-        tcPr.append(tcBorders)
-    
-    # Cột trái: Cơ quan ban hành
-    cell_left = table_header.cell(0, 0)
-    cell_left.vertical_alignment = WD_ALIGN_VERTICAL.CENTER
-    
-    p1 = cell_left.paragraphs[0]
-    p1.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    r1 = p1.add_run(CO_QUAN_CHU_QUAN)
-    set_font(r1, size=12, bold=False)
-    
-    p2 = cell_left.add_paragraph()
-    p2.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    r2 = p2.add_run(CO_QUAN_BAN_HANH)
-    set_font(r2, size=13, bold=True)
-    
-    # Đường gạch dưới tên cơ quan
-    p2_fmt = p2.paragraph_format
-    p2_fmt.space_after = Pt(2)
-    pPr = p2._p.get_or_add_pPr()
-    pBdr = OxmlElement('w:pBdr')
-    bottom = OxmlElement('w:bottom')
-    bottom.set(qn('w:val'), 'single')
-    bottom.set(qn('w:sz'), '6')
-    bottom.set(qn('w:space'), '1')
-    bottom.set(qn('w:color'), '000000')
-    pBdr.append(bottom)
-    pPr.append(pBdr)
-    
-    # Cột phải: Quốc hiệu - Tiêu ngữ
-    cell_right = table_header.cell(0, 1)
-    cell_right.vertical_alignment = WD_ALIGN_VERTICAL.CENTER
-    
-    pr1 = cell_right.paragraphs[0]
-    pr1.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    rr1 = pr1.add_run("CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM")
-    set_font(rr1, size=13, bold=True)
-    
-    pr2 = cell_right.add_paragraph()
-    pr2.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    rr2 = pr2.add_run("Độc lập – Tự do – Hạnh phúc")
-    set_font(rr2, size=13, bold=True)
-    
-    # Gạch dưới tiêu ngữ
-    pr2_fmt = pr2.paragraph_format
-    pr2_fmt.space_after = Pt(2)
-    pPr2 = pr2._p.get_or_add_pPr()
-    pBdr2 = OxmlElement('w:pBdr')
-    bottom2 = OxmlElement('w:bottom')
-    bottom2.set(qn('w:val'), 'single')
-    bottom2.set(qn('w:sz'), '6')
-    bottom2.set(qn('w:space'), '1')
-    bottom2.set(qn('w:color'), '000000')
-    pBdr2.append(bottom2)
-    pPr2.append(pBdr2)
-    
-    # ===================================================
-    # PHẦN II: SỐ VĂN BẢN + NGÀY THÁNG (bảng 2 cột)
-    # ===================================================
-    doc.add_paragraph()  # khoảng cách
-    
-    table_so = doc.add_table(rows=1, cols=2)
-    table_so.style = "Table Grid"
-    for cell in table_so.rows[0].cells:
-        tc = cell._tc
-        tcPr = tc.get_or_add_tcPr()
-        tcBorders = OxmlElement('w:tcBorders')
-        for border_name in ['top', 'left', 'bottom', 'right', 'insideH', 'insideV']:
-            border = OxmlElement(f'w:{border_name}')
-            border.set(qn('w:val'), 'none')
-            tcBorders.append(border)
-        tcPr.append(tcBorders)
-    
-    # Số ký hiệu
-    cell_so = table_so.cell(0, 0)
-    p_so = cell_so.paragraphs[0]
-    p_so.alignment = WD_ALIGN_PARAGRAPH.LEFT
-    r_so = p_so.add_run(f"Số:       {so_ky_hieu}")
-    set_font(r_so, size=13)
-    
-    # Ngày tháng năm
-    cell_ngay = table_so.cell(0, 1)
-    p_ngay = cell_ngay.paragraphs[0]
-    p_ngay.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    r_ngay = p_ngay.add_run("Đốc Bình Kiều, ngày    tháng    năm 2026")
-    set_font(r_ngay, size=13, italic=True)
-    
-    # Trích yếu (chỉ với công văn)
-    if loai == "cong_van":
-        p_vv = doc.add_paragraph()
-        p_vv.alignment = WD_ALIGN_PARAGRAPH.LEFT
-        r_vv = p_vv.add_run(f"V/v {trich_yeu}")
-        set_font(r_vv, size=13)
-    
-    # ===================================================
-    # PHẦN III: TIÊU ĐỀ VĂN BẢN (kế hoạch, báo cáo...)
-    # ===================================================
-    if loai in ["ke_hoach", "bao_cao", "to_trinh", "quyet_dinh"]:
-        loai_label = {
-            "ke_hoach": "KẾ HOẠCH",
-            "bao_cao": "BÁO CÁO",
-            "to_trinh": "TỜ TRÌNH",
-            "quyet_dinh": "QUYẾT ĐỊNH"
-        }.get(loai, "VĂN BẢN")
-        
-        add_para(loai_label, align=WD_ALIGN_PARAGRAPH.CENTER,
-                 bold=True, size=14, space_before=12)
-        add_para(trich_yeu, align=WD_ALIGN_PARAGRAPH.CENTER,
-                 bold=True, size=13, space_before=0)
-        add_para("", space_before=6)
-    
-    # ===================================================
-    # PHẦN IV: KÍNH GỬI
-    # ===================================================
-    if loai == "cong_van":
-        doc.add_paragraph()
-        p_kg = doc.add_paragraph()
-        p_kg.alignment = WD_ALIGN_PARAGRAPH.LEFT
-        r_kg = p_kg.add_run("Kính gửi: Sở Giáo dục và Đào tạo Đồng Tháp")
-        set_font(r_kg, size=13)
-        doc.add_paragraph()
-    
-    # ===================================================
-    # PHẦN V: NỘI DUNG CHÍNH
-    # ===================================================
-    _viet_noi_dung_markdown(doc, noi_dung, set_font, add_para)
-    
-    # ===================================================
-    # PHẦN VI: NƠI NHẬN + CHỮ KÝ (bảng 2 cột)
-    # ===================================================
-    doc.add_paragraph()
-    
-    table_ky = doc.add_table(rows=1, cols=2)
-    table_ky.style = "Table Grid"
-    for cell in table_ky.rows[0].cells:
-        tc = cell._tc
-        tcPr = tc.get_or_add_tcPr()
-        tcBorders = OxmlElement('w:tcBorders')
-        for border_name in ['top', 'left', 'bottom', 'right', 'insideH', 'insideV']:
-            border = OxmlElement(f'w:{border_name}')
-            border.set(qn('w:val'), 'none')
-            tcBorders.append(border)
-        tcPr.append(tcBorders)
-    
-    # Cột trái: Nơi nhận
-    cell_nn = table_ky.cell(0, 0)
-    p_nn_title = cell_nn.paragraphs[0]
-    r_nn_title = p_nn_title.add_run("Nơi nhận:")
-    set_font(r_nn_title, size=11, italic=True, bold=True)
-    
-    danh_sach_nn = [x.strip() for x in noi_nhan.split(";") if x.strip()]
-    # Luôn có: Sở GDĐT, Lưu VT
-    if not any("Sở GDĐT" in s or "Sở Giáo dục" in s for s in danh_sach_nn):
-        danh_sach_nn.insert(0, "Sở GDĐT Đồng Tháp (để báo cáo)")
-    if not any("Lưu" in s for s in danh_sach_nn):
-        danh_sach_nn.append("Lưu: VT, HS.")
-    
-    for nn in danh_sach_nn:
-        p_nn = cell_nn.add_paragraph()
-        r_nn = p_nn.add_run(f"- {nn};")
-        set_font(r_nn, size=11)
-    
-    # Cột phải: Chữ ký
-    cell_ky = table_ky.cell(0, 1)
-    cell_ky.vertical_alignment = WD_ALIGN_VERTICAL.TOP
-    
-    p_ky1 = cell_ky.paragraphs[0]
-    p_ky1.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    r_ky1 = p_ky1.add_run("KT. HIỆU TRƯỞNG")
-    set_font(r_ky1, size=13, bold=True)
-    
-    p_ky2 = cell_ky.add_paragraph()
-    p_ky2.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    r_ky2 = p_ky2.add_run("PHÓ HIỆU TRƯỞNG")
-    set_font(r_ky2, size=13, bold=True)
-    
-    # Khoảng trống ký tên
-    for _ in range(4):
-        p_blank = cell_ky.add_paragraph()
-        p_blank.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    
-    p_ten = cell_ky.add_paragraph()
-    p_ten.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    r_ten = p_ten.add_run("Nguyễn Minh Trí")
-    set_font(r_ten, size=13, bold=True)
-    
-    # ===================================================
-    # LƯU FILE
-    # ===================================================
     # Đặt tên file - thêm timestamp để tránh trùng
     from datetime import datetime
     timestamp = datetime.now().strftime("%H%M%S")
     ten_file_cu = Path(ten_file_goc).stem
     ten_file_moi = f"VBDi_{ten_file_cu}_{loai}_{timestamp}.docx"
     duong_dan_luu = duong_dan_thu_muc / ten_file_moi
-    doc.save(str(duong_dan_luu))
+    
+    # Render document (Renderer Engine layer)
+    render_document(
+        template_path=template_path,
+        output_path=duong_dan_luu,
+        metadata=metadata,
+        blocks=blocks
+    )
+    
     return str(duong_dan_luu)
-
-
-def _viet_noi_dung_markdown(doc, noi_dung: str, set_font_fn, add_para_fn):
-    """Chuyển nội dung markdown đơn giản thành đoạn văn Word."""
-    lines = noi_dung.split("\n")
-    for line in lines:
-        line = line.rstrip()
-        if not line:
-            add_para_fn("", space_before=0, space_after=3)
-            continue
-        
-        # Tiêu đề mục chính (bắt đầu bằng ** hoặc #)
-        if re.match(r"^#{1,3}\s+", line) or re.match(r"^\*\*[IVX\d]+[\.:]", line):
-            text = re.sub(r"^#+\s+", "", line)
-            text = re.sub(r"\*\*(.+?)\*\*", r"\1", text)
-            p = doc.add_paragraph()
-            p.alignment = WD_ALIGN_PARAGRAPH.LEFT
-            p.paragraph_format.space_before = Pt(6)
-            p.paragraph_format.space_after  = Pt(3)
-            run = p.add_run(text)
-            set_font_fn(run, size=13, bold=True)
-        
-        # Dòng in đậm bình thường
-        elif line.startswith("**") and line.endswith("**"):
-            text = line.strip("*")
-            p = doc.add_paragraph()
-            p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
-            p.paragraph_format.space_before = Pt(3)
-            p.paragraph_format.space_after  = Pt(3)
-            run = p.add_run(text)
-            set_font_fn(run, size=13, bold=True)
-        
-        # Dòng bullet/gạch đầu dòng
-        elif line.startswith("- ") or line.startswith("+ "):
-            text = line[2:].strip()
-            text = re.sub(r"\*\*(.+?)\*\*", r"\1", text)
-            p = doc.add_paragraph()
-            p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
-            p.paragraph_format.left_indent  = Cm(0.75)
-            p.paragraph_format.space_before = Pt(0)
-            p.paragraph_format.space_after  = Pt(3)
-            p.paragraph_format.line_spacing = Pt(18)
-            run = p.add_run(f"- {text}")
-            set_font_fn(run, size=13)
-        
-        # Dòng đánh số
-        elif re.match(r"^\d+\.", line) or re.match(r"^[IVX]+\.", line):
-            text = re.sub(r"\*\*(.+?)\*\*", r"\1", line)
-            p = doc.add_paragraph()
-            p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
-            p.paragraph_format.space_before = Pt(4)
-            p.paragraph_format.space_after  = Pt(3)
-            p.paragraph_format.line_spacing = Pt(18)
-            run = p.add_run(text)
-            set_font_fn(run, size=13)
-        
-        # Dòng thường
-        else:
-            text = re.sub(r"\*\*(.+?)\*\*", r"\1", line)
-            text = re.sub(r"\*(.+?)\*", r"\1", text)
-            p = doc.add_paragraph()
-            p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
-            p.paragraph_format.first_line_indent = Cm(1.0)
-            p.paragraph_format.space_before = Pt(0)
-            p.paragraph_format.space_after  = Pt(3)
-            p.paragraph_format.line_spacing = Pt(18)
-            run = p.add_run(text)
-            set_font_fn(run, size=13)
 
 
 # ============================================================
