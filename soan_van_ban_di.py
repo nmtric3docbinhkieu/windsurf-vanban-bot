@@ -56,6 +56,16 @@ DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
 DEEPSEEK_BASE_URL = "https://api.deepseek.com"
 DEEPSEEK_MODEL = "deepseek-chat"  # Model phổ biến, giá hợp lý, đã test hoạt động
 
+
+def dinh_dang_ngay_thang_hien_tai() -> str:
+    """Trả về chuỗi ngày tháng để gắn vào template.
+
+    Template đã chứa sẵn tiền tố "Đồng Tháp, ", nên ở đây chỉ trả về phần
+    "ngày ... tháng ... năm ...".
+    """
+    hom_nay = datetime.now()
+    return f"ngày {hom_nay.day} tháng {hom_nay.month} năm {hom_nay.year}"
+
 # ============================================================
 # BƯỚC 1: ĐỌC NỘI DUNG FILE VĂN BẢN ĐẾN
 # ============================================================
@@ -246,7 +256,7 @@ def tao_van_ban_docx(du_lieu: dict, ten_file_goc: str) -> str:
     metadata = {
         'loai_van_ban': loai_hien_thi,
         'so_ky_hieu': so_ky_hieu,
-        'ngay_thang': 'Đốc Bình Kiều, ngày 10 tháng 5 năm 2026',  # Có thể lấy từ du_lieu
+        'ngay_thang': du_lieu.get('ngay_thang', dinh_dang_ngay_thang_hien_tai()),
         'trich_yeu': trich_yeu,
         'noi_nhan': noi_nhan,
         'nguoi_ky': 'Nguyễn Minh Trí',  # Có thể lấy từ du_lieu

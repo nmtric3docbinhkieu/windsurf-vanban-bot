@@ -5,40 +5,40 @@
       "font_size": 14,
       "indent_cm": 0,
       "spacing_before": 6,
-      "spacing_after": 3,
-      "line_spacing": 18
+      "spacing_after": 6,
+      "line_spacing": 1.0
     },
     "heading2": {
       "bold": true,
       "font_size": 13,
-      "indent_cm": 1.0,
-      "spacing_before": 3,
-      "spacing_after": 3,
-      "line_spacing": 18
+      "indent_cm": 1.25,
+      "spacing_before": 6,
+      "spacing_after": 6,
+      "line_spacing": 1.0
     },
     "heading3": {
       "bold": false,
       "font_size": 13,
-      "indent_cm": 1.5,
-      "spacing_before": 3,
-      "spacing_after": 3,
-      "line_spacing": 18
+      "indent_cm": 1.25,
+      "spacing_before": 6,
+      "spacing_after": 6,
+      "line_spacing": 1.0
     },
     "paragraph": {
       "bold": false,
       "font_size": 13,
       "indent_cm": 1.25,
-      "spacing_before": 0,
-      "spacing_after": 3,
-      "line_spacing": 18
+      "spacing_before": 6,
+      "spacing_after": 6,
+      "line_spacing": 1.0
     },
     "bullet": {
       "bold": false,
       "font_size": 13,
       "indent_cm": 1.25,
-      "spacing_before": 0,
-      "spacing_after": 3,
-      "line_spacing": 18
+      "spacing_before": 6,
+      "spacing_after": 6,
+      "line_spacing": 1.0
     }
   },
   "font": {

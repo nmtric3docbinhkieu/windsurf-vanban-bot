@@ -257,8 +257,13 @@ def set_paragraph_format(para, block_type='paragraph', style_config=None):
         para.alignment = WD_ALIGN_PARAGRAPH.LEFT
     
     # Set line spacing
-    line_spacing = block_style.get('line_spacing', 18)
-    para.paragraph_format.line_spacing = Pt(line_spacing)
+    # - value <= 3: line multiple/single spacing
+    # - value > 3: exact point spacing
+    line_spacing = block_style.get('line_spacing', 1.0)
+    if isinstance(line_spacing, (int, float)) and line_spacing <= 3:
+        para.paragraph_format.line_spacing = line_spacing
+    else:
+        para.paragraph_format.line_spacing = Pt(line_spacing)
     
     # Set spacing after
     spacing_after = block_style.get('spacing_after', 3)
@@ -366,29 +371,44 @@ def render_document(template_path: Path, output_path: Path, metadata: Dict, bloc
     # Bước 2: Mở bằng python-docx, tìm anchor, insert structured paragraphs
     doc = Document(temp_path)
     
-    # Tìm paragraph chứa {{noi_dung}} hoặc placeholder rỗng
+    # Tìm đúng paragraph chứa {{noi_dung}} trước.
+    # Chỉ fallback sang dòng trống khi template thực sự không có placeholder này.
     anchor_index = -1
     for i, para in enumerate(doc.paragraphs):
         text = para.text.strip()
-        if text == '' or '{{noi_dung}}' in text:
+        if '{{noi_dung}}' in text:
             anchor_index = i
             break
+
+    if anchor_index == -1:
+        for i, para in enumerate(doc.paragraphs):
+            text = para.text.strip()
+            if text == '':
+                anchor_index = i
+                break
     
     if anchor_index == -1:
         print("⚠️  Không tìm thấy anchor {{noi_dung}}")
         # Nếu không tìm thấy, insert ở cuối
         anchor_index = len(doc.paragraphs) - 1
     
-    # Lưu các paragraph sau anchor (footer, signature, v.v.)
-    footer_paragraphs = []
-    for i in range(anchor_index + 1, len(doc.paragraphs)):
-        footer_paragraphs.append(doc.paragraphs[i])
-    
-    # Xóa anchor và các paragraph sau
-    # Xóa từ cuối lên đầu để tránh index shift
-    for i in range(len(doc.paragraphs) - 1, anchor_index - 1, -1):
-        p = doc.paragraphs[i]._element
-        p.getparent().remove(p)
+    # Lưu toàn bộ phần tử phía sau anchor trong body (paragraph, table, ...)
+    # để có thể chèn lại đúng thứ tự ở cuối tài liệu.
+    body = doc._body._body
+    body_children = list(body.iterchildren())
+    anchor_element = doc.paragraphs[anchor_index]._element
+    anchor_body_index = body_children.index(anchor_element)
+
+    trailing_elements = []
+    for element in body_children[anchor_body_index + 1:]:
+        if element.tag.endswith('sectPr'):
+            continue
+        trailing_elements.append(element)
+
+    # Xóa anchor placeholder và các phần tử phía sau nó khỏi vị trí hiện tại.
+    for element in trailing_elements:
+        element.getparent().remove(element)
+    anchor_element.getparent().remove(anchor_element)
     
     # Add structured paragraphs với styling từ config
     styles = style_config.get('styles', {})
@@ -405,19 +425,18 @@ def render_document(template_path: Path, output_path: Path, metadata: Dict, bloc
         set_paragraph_format(p, block_type, style_config)
         set_font(run, bold=block_style.get('bold', False), size=block_style.get('font_size', 13), style_config=style_config)
     
-    # Add lại footer paragraphs
-    for para in footer_paragraphs:
-        # Copy paragraph
-        new_para = doc.add_paragraph(para.text)
-        # Copy runs với styling
-        new_para.clear()
-        for run in para.runs:
-            new_run = new_para.add_run(run.text)
-            # Copy font properties
-            new_run.font.name = run.font.name
-            new_run.font.size = run.font.size
-            new_run.font.bold = run.font.bold
-            new_run.font.italic = run.font.italic
+    # Add lại các phần tử cuối tài liệu (ví dụ: bảng Nơi nhận - Ký tên)
+    sect_pr = None
+    for element in body.iterchildren():
+        if element.tag.endswith('sectPr'):
+            sect_pr = element
+            break
+
+    for element in trailing_elements:
+        if sect_pr is not None:
+            body.insert(body.index(sect_pr), element)
+        else:
+            body.append(element)
     
     # Save output
     doc.save(output_path)
