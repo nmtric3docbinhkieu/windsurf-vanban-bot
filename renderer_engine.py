@@ -10,6 +10,8 @@ Kiến trúc:
 
 API:
     render_document(template_path, output_path, metadata, blocks, style_config_path=None)
+
+Block Schema Version: 1.0
 """
 
 import re
@@ -22,6 +24,31 @@ from docx.oxml.ns import qn
 from docx.oxml import OxmlElement
 from docxtpl import DocxTemplate
 from pathlib import Path
+
+# Block Schema Version - freeze for backward compatibility
+BLOCK_SCHEMA_VERSION = "1.0"
+
+# Block Registry - mapping block types to renderers
+# This pattern avoids if/else spaghetti and allows easy extension
+BLOCK_RENDERERS = {
+    "heading1": None,  # Will be set after function definitions
+    "heading2": None,
+    "heading3": None,
+    "paragraph": None,
+    "bullet": None,
+}
+
+def register_block_renderer(block_type: str):
+    """
+    Decorator to register a block renderer
+    
+    Args:
+        block_type: Type of block (heading1, heading2, etc.)
+    """
+    def decorator(func):
+        BLOCK_RENDERERS[block_type] = func
+        return func
+    return decorator
 
 def load_style_config(config_path: Optional[Path] = None) -> Dict:
     """
@@ -52,6 +79,46 @@ def load_style_config(config_path: Optional[Path] = None) -> Dict:
             "font": {"name": "Times New Roman", "vietnamese_support": True},
             "paragraph": {"alignment": "justify"}
         }
+
+def validate_blocks(blocks: List[Dict]) -> List[str]:
+    """
+    Validate structured blocks against schema
+    
+    Args:
+        blocks: List of blocks to validate
+    
+    Returns:
+        List of validation errors (empty if valid)
+    
+    Checks:
+        - Missing required fields
+        - Invalid block types
+        - Invalid metadata
+    """
+    errors = []
+    valid_types = {"heading1", "heading2", "heading3", "paragraph", "bullet"}
+    
+    for i, block in enumerate(blocks):
+        # Check required fields
+        if "type" not in block:
+            errors.append(f"Block {i}: Missing 'type' field")
+            continue
+        
+        if "text" not in block:
+            errors.append(f"Block {i}: Missing 'text' field")
+            continue
+        
+        # Check block type
+        if block["type"] not in valid_types:
+            errors.append(f"Block {i}: Invalid type '{block['type']}'. Valid types: {valid_types}")
+        
+        # Check metadata
+        if "meta" not in block:
+            errors.append(f"Block {i}: Missing 'meta' field")
+        elif not isinstance(block["meta"], dict):
+            errors.append(f"Block {i}: 'meta' must be a dict")
+    
+    return errors
 
 def parse_content_to_blocks(content: str) -> List[Dict]:
     """
@@ -263,10 +330,16 @@ def render_document(template_path: Path, output_path: Path, metadata: Dict, bloc
     
     Kiến trúc:
         AI Parser → blocks (content)
+        Validation Layer → schema check
         Renderer Engine → Word paragraphs (presentation)
         Template → header/footer (format)
         Style Config → styling rules (configurable)
     """
+    # Validate blocks before rendering
+    validation_errors = validate_blocks(blocks)
+    if validation_errors:
+        raise ValueError(f"Block validation failed:\n" + "\n".join(validation_errors))
+    
     # Load style config
     style_config = load_style_config(style_config_path)
     

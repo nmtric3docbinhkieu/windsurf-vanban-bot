@@ -109,36 +109,19 @@ readPDF('{duong_dan}').then(result => {{
 # ============================================================
 
 PROMPT_SYSTEM = f"""
-Bạn là chuyên gia soạn thảo văn bản hành chính nhà nước Việt Nam,
-chuyên hỗ trợ trường THPT. Bạn có nhiệm vụ đọc văn bản đến từ
-Sở Giáo dục và Đào tạo Đồng Tháp rồi soạn văn bản đi phù hợp
-với đơn vị trường sau:
+Bạn là chuyên gia soạn thảo văn bản hành chính cho Trường THPT Đốc Bình Kiều.
 
+Thông tin trường:
 {THONG_TIN_TRUONG}
 
-==== QUY TẮC QUAN TRỌNG ====
-
-Trả lời theo cấu trúc markdown sau (bắt buộc theo đúng format):
-
----
-LOAI_VAN_BAN: cong_van|ke_hoach|bao_cao|to_trinh|quyet_dinh
-SO_KY_HIEU: /CV-THPTĐBK hoặc /KH-THPTĐBK hoặc /BC-THPTĐBK
-TRICH_YEU: tiêu đề ngắn
-TOM_TAT_YEU_CAU: tóm tắt ngắn yêu cầu
-NOI_NHAN: Sở GDĐT Đồng Tháp; Lưu: VT, HS
----
-NOI_DUNG:
-[nội dung văn bản đi ở đây, dùng markdown, **in đậm** cho tiêu đề]
----
-
-YÊU CẦU NỘI DUNG:
-- Bám sát yêu cầu của Sở nhưng CHỈ lấy phần liên quan đến THPT
-- Phù hợp quy mô trường (13 lớp, 506 HS, vùng nông thôn)
-- Cô đọng, súc tích, ngôn ngữ hành chính chuẩn
+Yêu cầu: Đọc văn bản đến từ Sở GDĐT, soạn văn bản đi phù hợp với trường.
+- Bám sát yêu cầu, chỉ lấy phần liên quan THPT
+- Phù hợp quy mô: 13 lớp, 506 HS, vùng nông thôn
+- Cô đọng, ngôn ngữ hành chính chuẩn
 - Đánh số mục rõ ràng (I, II, III... hoặc 1, 2, 3...)
-- KHÔNG điền ngày tháng cụ thể
-- KHÔNG bao gồm header (QUỐC HIỆU, TIÊU NGỮ, SỐ, NGÀY, TÊN CƠ QUAN) trong NOI_DUNG
-- KHÔNG bao gồm báo cáo - chỉ soạn văn bản đi chính
+- KHÔNG điền ngày tháng cụ thể trong nội dung
+
+Trả về JSON (không markdown).
 """
 
 def goi_ai_soan_van_ban(noi_dung_van_ban_den: str) -> dict:
@@ -152,17 +135,19 @@ def goi_ai_soan_van_ban(noi_dung_van_ban_den: str) -> dict:
         base_url=DEEPSEEK_BASE_URL
     )
     
-    # Không giới hạn độ dài - đọc toàn bộ nội dung
-    
     prompt_user = f"""
-Đây là nội dung văn bản đến từ Sở GDĐT Đồng Tháp:
-
-===== BẮT ĐẦU VĂN BẢN ĐẾN =====
+Văn bản đến:
 {noi_dung_van_ban_den}
-===== KẾT THÚC VĂN BẢN ĐẾN =====
 
-Hãy soạn văn bản đi phù hợp với Trường THPT Đốc Bình Kiều theo đúng yêu cầu.
-Trả về theo format markdown như hướng dẫn.
+Soạn văn bản đi và trả về JSON với cấu trúc:
+{{
+  "loai_van_ban": "cong_van|ke_hoach|bao_cao|to_trinh|quyet_dinh",
+  "so_ky_hieu_goi_y": "/CV-THPTĐBK hoặc /KH-THPTĐBK",
+  "trich_yeu": "tiêu đề ngắn gọn",
+  "tom_tat_yeu_cau": "tóm tắt yêu cầu",
+  "noi_nhan": "nơi nhận",
+  "noi_dung": "nội dung văn bản đi (markdown format)"
+}}
 """
     
     try:
@@ -177,66 +162,48 @@ Trả về theo format markdown như hướng dẫn.
         )
         
         raw = response.choices[0].message.content.strip()
-        print(f"🔍 AI trả về (đầu 500 ký tự): {raw[:500]}")
+        print(f"🔍 AI trả về (đầu 300 ký tự): {raw[:300]}")
         
-        return _parse_markdown_response(raw)
+        return _parse_json_response(raw)
     
     except Exception as e:
         print(f"❌ Lỗi gọi DeepSeek API: {e}")
         raise
 
 
-def _parse_markdown_response(text: str) -> dict:
-    """Parse markdown response từ AI thành dict."""
-    result = {}
+def _parse_json_response(text: str) -> dict:
+    """Parse JSON response từ AI thành dict."""
+    # Tìm JSON trong response (có thể có text trước/sau)
+    json_match = re.search(r'\{.*\}', text, re.DOTALL)
     
-    # Parse các trường metadata
-    patterns = {
-        'LOAI_VAN_BAN': r'LOAI_VAN_BAN:\s*(.+)',
-        'SO_KY_HIEU': r'SO_KY_HIEU:\s*(.+)',
-        'TRICH_YEU': r'TRICH_YEU:\s*(.+)',
-        'TOM_TAT_YEU_CAU': r'TOM_TAT_YEU_CAU:\s*(.+)',
-        'NOI_NHAN': r'NOI_NHAN:\s*(.+)',
-    }
-    
-    for key, pattern in patterns.items():
-        match = re.search(pattern, text, re.MULTILINE)
-        if match:
-            value = match.group(1).strip()
-            if key == 'CAN_BAO_CAO':
-                value = value.lower() == 'true'
-            result[key.lower()] = value
-    
-    # Map tên trường
-    field_map = {
-        'loai_van_ban': 'loai_van_ban',
-        'so_ky_hieu': 'so_ky_hieu_goi_y',
-        'trich_yeu': 'trich_yeu',
-        'tom_tat_yeu_cau': 'tom_tat_yeu_cau',
-        'noi_nhan': 'noi_nhan',
-    }
-    
-    mapped_result = {}
-    for old_key, new_key in field_map.items():
-        if old_key in result:
-            mapped_result[new_key] = result[old_key]
-    
-    # Parse NOI_DUNG (phần sau ---NOI_DUNG:---)
-    noi_dung_match = re.search(r'---\s*NOI_DUNG:\s*(.+?)\s*---', text, re.DOTALL)
-    if noi_dung_match:
-        noi_dung = noi_dung_match.group(1).strip()
-        # Loại bỏ dòng "NOI_DUNG:" nếu AI vẫn thêm vào
-        noi_dung = re.sub(r'^NOI_DUNG:\s*', '', noi_dung, flags=re.MULTILINE)
-        mapped_result['noi_dung'] = noi_dung.strip()
+    if json_match:
+        try:
+            json_str = json_match.group(0)
+            result = json.loads(json_str)
+            return result
+        except json.JSONDecodeError as e:
+            print(f"⚠️  Lỗi parse JSON: {e}")
+            print(f"   JSON nhận được: {json_str[:200]}")
+            # Fallback: trả về dict rỗng
+            return {
+                'loai_van_ban': 'cong_van',
+                'so_ky_hieu_goi_y': '/CV-THPTĐBK',
+                'trich_yeu': 'Văn bản không xác định',
+                'tom_tat_yeu_cau': '',
+                'noi_nhan': 'Sở GDĐT Đồng Tháp',
+                'noi_dung': 'Lỗi parse response từ AI'
+            }
     else:
-        # Fallback: lấy phần sau --- cuối cùng
-        parts = text.split('---')
-        if len(parts) > 1:
-            noi_dung = parts[-1].strip()
-            noi_dung = re.sub(r'^NOI_DUNG:\s*', '', noi_dung, flags=re.MULTILINE)
-            mapped_result['noi_dung'] = noi_dung.strip()
-    
-    return mapped_result
+        print(f"⚠️  Không tìm thấy JSON trong response")
+        print(f"   Response: {text[:200]}")
+        return {
+            'loai_van_ban': 'cong_van',
+            'so_ky_hieu_goi_y': '/CV-THPTĐBK',
+            'trich_yeu': 'Văn bản không xác định',
+            'tom_tat_yeu_cau': '',
+            'noi_nhan': 'Sở GDĐT Đồng Tháp',
+            'noi_dung': 'Không nhận được response từ AI'
+        }
 
 
 # ============================================================
@@ -258,6 +225,14 @@ def tao_van_ban_docx(du_lieu: dict, ten_file_goc: str) -> str:
     
     # Chuẩn bị metadata từ AI output
     loai = du_lieu.get("loai_van_ban", "cong_van")
+    loai_key = str(loai).strip().lower()
+    loai_hien_thi = {
+        "cong_van": "CÔNG VĂN",
+        "ke_hoach": "KẾ HOẠCH",
+        "bao_cao": "BÁO CÁO",
+        "to_trinh": "TỜ TRÌNH",
+        "quyet_dinh": "QUYẾT ĐỊNH",
+    }.get(loai_key, str(loai).strip().upper() if loai else "KẾ HOẠCH")
     so_ky_hieu = du_lieu.get("so_ky_hieu_goi_y", "/CV-THPTĐBK")
     trich_yeu = du_lieu.get("trich_yeu", "")
     noi_dung  = du_lieu.get("noi_dung", "")
@@ -269,7 +244,7 @@ def tao_van_ban_docx(du_lieu: dict, ten_file_goc: str) -> str:
     
     # Chuẩn bị metadata cho renderer
     metadata = {
-        'loai_van_ban': loai.upper() if loai else 'KẾ HOẠCH',
+        'loai_van_ban': loai_hien_thi,
         'so_ky_hieu': so_ky_hieu,
         'ngay_thang': 'Đốc Bình Kiều, ngày 10 tháng 5 năm 2026',  # Có thể lấy từ du_lieu
         'trich_yeu': trich_yeu,
