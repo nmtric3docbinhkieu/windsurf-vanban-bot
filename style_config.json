@@ -3,7 +3,7 @@
     "heading1": {
       "bold": true,
       "font_size": 14,
-      "indent_cm": 0,
+      "indent_cm": 1.25,
       "spacing_before": 6,
       "spacing_after": 6,
       "line_spacing": 1.0

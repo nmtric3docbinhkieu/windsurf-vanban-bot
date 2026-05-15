@@ -66,6 +66,71 @@ def dinh_dang_ngay_thang_hien_tai() -> str:
     hom_nay = datetime.now()
     return f"ngày {hom_nay.day} tháng {hom_nay.month} năm {hom_nay.year}"
 
+
+def dinh_dang_noi_nhan(noi_nhan_raw: str, noi_dung: str = "") -> str:
+    """Định dạng nơi nhận theo thể thức gạch đầu dòng như mẫu Sở.
+
+    Ví dụ input:
+        "Sở GDĐT Đồng Tháp (báo cáo); Lưu: VT"
+    Output:
+        "- Sở GDĐT Đồng Tháp (báo cáo);\n- Lưu: VT."
+    """
+    if not noi_nhan_raw:
+        noi_nhan_raw = ""
+
+    parts = [p.strip() for p in re.split(r';\s*', noi_nhan_raw) if p.strip()]
+
+    # Nhóm người nhận bắt buộc theo yêu cầu nghiệp vụ hiện tại
+    bat_buoc = ["Phó Hiệu trưởng", "Tổ trưởng", "Giáo viên chủ nhiệm"]
+
+    # Tự động bổ sung nơi nhận theo bộ phận được nhắc trong nội dung
+    noi_dung_lower = (noi_dung or "").lower()
+    goi_y_theo_noi_dung = [
+        ("đoàn trường", "Đoàn trường"),
+        ("giáo viên chủ nhiệm", "Giáo viên chủ nhiệm"),
+        ("tổ trưởng", "Tổ trưởng"),
+        ("phó hiệu trưởng", "Phó Hiệu trưởng"),
+    ]
+
+    # Loại bỏ nơi nhận không dùng theo yêu cầu nghiệp vụ hiện tại.
+    parts_filtered = []
+    for part in parts:
+        p_lower = part.lower()
+        if "ban giám hiệu" in p_lower:
+            continue
+        if "văn phòng" in p_lower or "van phong" in p_lower:
+            continue
+        if "lưu" in p_lower and "vt" in p_lower:
+            continue
+        parts_filtered.append(part)
+    parts = parts_filtered
+
+    lower_parts = " | ".join(parts).lower()
+    for muc in bat_buoc:
+        if muc.lower() not in lower_parts:
+            parts.append(muc)
+            lower_parts += f" | {muc.lower()}"
+
+    for keyword, muc in goi_y_theo_noi_dung:
+        if keyword in noi_dung_lower and muc.lower() not in lower_parts:
+            parts.append(muc)
+            lower_parts += f" | {muc.lower()}"
+
+    # Luôn đặt "Lưu: VT." ở cuối danh sách nơi nhận.
+    parts = [p for p in parts if not ("lưu" in p.lower() and "vt" in p.lower())]
+    parts.append("Lưu: VT")
+
+    if not parts:
+        return ""
+
+    lines = []
+    for idx, part in enumerate(parts):
+        clean_part = part.rstrip(';').rstrip('.')
+        line_end = '.' if idx == len(parts) - 1 else ';'
+        lines.append(f"- {clean_part}{line_end}")
+
+    return "\n".join(lines)
+
 # ============================================================
 # BƯỚC 1: ĐỌC NỘI DUNG FILE VĂN BẢN ĐẾN
 # ============================================================
@@ -246,7 +311,8 @@ def tao_van_ban_docx(du_lieu: dict, ten_file_goc: str) -> str:
     so_ky_hieu = du_lieu.get("so_ky_hieu_goi_y", "/CV-THPTĐBK")
     trich_yeu = du_lieu.get("trich_yeu", "")
     noi_dung  = du_lieu.get("noi_dung", "")
-    noi_nhan  = du_lieu.get("noi_nhan", "")
+    noi_nhan_raw = du_lieu.get("noi_nhan", "")
+    noi_nhan = dinh_dang_noi_nhan(noi_nhan_raw, noi_dung)
     
     # Parse nội dung thành structured blocks (AI Parser layer)
     content_clean = clean_content(noi_dung)

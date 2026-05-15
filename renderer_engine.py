@@ -158,9 +158,14 @@ def parse_content_to_blocks(content: str) -> List[Dict]:
                 }
             })
         # Heading level 2: 1, 2, 3...
+        # Chỉ coi là heading khi là dòng tiêu đề ngắn.
+        # Các dòng đánh số dạng câu đầy đủ sẽ giữ là paragraph để không bị in đậm sai.
         elif re.match(r'^\d+\.', line):
+            after_number = re.sub(r'^\d+\.\s*', '', line).strip()
+            is_short_heading = len(after_number) <= 90 and not after_number.endswith('.')
+            block_type = 'heading2' if is_short_heading else 'paragraph'
             blocks.append({
-                'type': 'heading2',
+                'type': block_type,
                 'text': line,
                 'meta': {
                     'numbering': True,
@@ -409,7 +414,14 @@ def render_document(template_path: Path, output_path: Path, metadata: Dict, bloc
     for element in trailing_elements:
         element.getparent().remove(element)
     anchor_element.getparent().remove(anchor_element)
+
+    # Thêm đường kẻ ngắn dưới tiêu đề làm mặc định theo mẫu thể thức.
+    _add_title_separator_line(doc, style_config)
     
+    # Đảm bảo có đúng khoảng cách 1 dòng trống giữa tiêu đề và nội dung.
+    if doc.paragraphs and doc.paragraphs[-1].text.strip() != '':
+        doc.add_paragraph('')
+
     # Add structured paragraphs với styling từ config
     styles = style_config.get('styles', {})
     for block in blocks:
@@ -437,6 +449,14 @@ def render_document(template_path: Path, output_path: Path, metadata: Dict, bloc
             body.insert(body.index(sect_pr), element)
         else:
             body.append(element)
+
+    # Chuẩn hóa khoảng cách tiêu đề: dòng tiêu đề phụ ngay dưới loại văn bản không có space-before.
+    non_empty_paras = [p for p in doc.paragraphs if p.text.strip()]
+    if len(non_empty_paras) >= 2:
+        non_empty_paras[1].paragraph_format.space_before = Pt(0)
+
+    # Chuẩn hóa khối "Nơi nhận" theo thể thức yêu cầu.
+    _format_noi_nhan_table(doc, metadata.get('noi_nhan', ''), style_config)
     
     # Save output
     doc.save(output_path)
@@ -462,9 +482,13 @@ def clean_content(content: str) -> str:
     if lines and lines[0].strip().upper() in ["KẾ HOẠCH", "QUYẾT ĐỊNH", "BÁO CÁO", "TỜ TRÌNH", "BIÊN BẢN", "CÔNG VĂN"]:
         lines = lines[1:]
     
-    # Bỏ dòng thứ hai nếu là trích yếu
+    # Bỏ dòng trích yếu ngắn (nếu có), nhưng giữ lại các dòng mở đầu kiểu "Căn cứ..."
     if lines and lines[0].strip():
-        lines = lines[1:]
+        first_line = lines[0].strip()
+        first_upper = first_line.upper()
+        looks_like_legal_basis = first_upper.startswith("CĂN CỨ")
+        if not looks_like_legal_basis and len(first_line) <= 220:
+            lines = lines[1:]
     
     # Bỏ dòng trống tiếp theo
     if lines and not lines[0].strip():
@@ -488,6 +512,84 @@ def clean_content(content: str) -> str:
             result.append('')
     
     return '\n'.join(result)
+
+
+def _format_noi_nhan_table(doc: Document, noi_nhan_text: str, style_config: Optional[Dict] = None) -> None:
+    """Định dạng bảng Nơi nhận:
+    - "Nơi nhận:" size 12
+    - Các dòng bên dưới size 11
+    - Căn trái để tránh giãn chữ do justify
+    """
+    if style_config is None:
+        style_config = load_style_config()
+
+    target_table = None
+    for table in doc.tables:
+        found = False
+        for row in table.rows:
+            for cell in row.cells:
+                if 'Nơi nhận' in (cell.text or ''):
+                    found = True
+                    break
+            if found:
+                break
+        if found:
+            target_table = table
+            break
+
+    if target_table is None:
+        return
+
+    left_cell = target_table.cell(0, 0)
+    left_cell.text = ""
+
+    p_header = left_cell.paragraphs[0]
+    p_header.alignment = WD_ALIGN_PARAGRAPH.LEFT
+    p_header.paragraph_format.space_before = Pt(0)
+    p_header.paragraph_format.space_after = Pt(0)
+    p_header.paragraph_format.line_spacing = 1.0
+    p_header.paragraph_format.first_line_indent = Inches(0)
+    run_header = p_header.add_run("Nơi nhận:")
+    set_font(run_header, bold=False, size=12, style_config=style_config)
+
+    lines = [ln.strip() for ln in (noi_nhan_text or '').splitlines() if ln.strip()]
+    for line in lines:
+        p = left_cell.add_paragraph()
+        p.alignment = WD_ALIGN_PARAGRAPH.LEFT
+        p.paragraph_format.space_before = Pt(0)
+        p.paragraph_format.space_after = Pt(0)
+        p.paragraph_format.line_spacing = 1.0
+        p.paragraph_format.first_line_indent = Inches(0)
+        run = p.add_run(line)
+        set_font(run, bold=False, size=11, style_config=style_config)
+
+
+def _add_title_separator_line(doc: Document, style_config: Optional[Dict] = None) -> None:
+    """Vẽ đường line ngắn (khoảng 3cm) căn giữa ngay dưới tiêu đề phụ."""
+    if style_config is None:
+        style_config = load_style_config()
+
+    non_empty_paras = [p for p in doc.paragraphs if p.text.strip()]
+    if len(non_empty_paras) < 2:
+        return
+
+    subtitle_para = non_empty_paras[1]
+    next_para = subtitle_para._p.getnext()
+    if next_para is not None:
+        existing_text = "".join(next_para.itertext()).strip()
+        if set(existing_text) <= {'_'} and existing_text:
+            return
+
+    line_para = doc.add_paragraph('________________')
+    subtitle_para._p.addnext(line_para._p)
+    line_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    line_para.paragraph_format.space_before = Pt(0)
+    line_para.paragraph_format.space_after = Pt(0)
+    line_para.paragraph_format.line_spacing = 1.0
+    line_para.paragraph_format.first_line_indent = Inches(0)
+
+    if line_para.runs:
+        set_font(line_para.runs[0], bold=False, size=12, style_config=style_config)
 
 def test():
     """Test renderer engine với API mới"""
