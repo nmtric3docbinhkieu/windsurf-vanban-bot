@@ -21,7 +21,7 @@ from docx import Document
 from docx.shared import Pt, Inches
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.oxml.ns import qn
-from docx.oxml import OxmlElement
+from docx.oxml import OxmlElement, parse_xml
 from docxtpl import DocxTemplate
 from pathlib import Path
 
@@ -224,7 +224,7 @@ def set_font(run, bold=False, size=13, style_config=None):
     run.font.name = font_name
     run.font.size = Pt(size)
     run.font.bold = bold
-    
+
     # Set font tiếng Việt nếu config yêu cầu
     if font_config.get('vietnamese_support', True):
         r = run._r
@@ -234,6 +234,32 @@ def set_font(run, bold=False, size=13, style_config=None):
         rFonts.set(qn('w:hAnsi'), font_name)
         rFonts.set(qn('w:eastAsia'), font_name)
         rPr.append(rFonts)
+
+
+def add_vml_line(paragraph, start_x_pt=0, end_x_pt=85, y_pt=2, stroke_weight='0.75pt'):
+    """Thêm đường line VML như mẫu hành chính (độ dài ~3cm)."""
+    p = paragraph._p
+    vml_ns = 'urn:schemas-microsoft-com:vml'
+
+    run = OxmlElement('w:r')
+    run.append(OxmlElement('w:rPr'))
+
+    pict = OxmlElement('w:pict')
+    line_xml = (
+        f'<v:line xmlns:v="{vml_ns}" '
+        'style="position:absolute;z-index:251656704;visibility:visible;'
+        'mso-wrap-style:square;mso-width-percent:0;mso-height-percent:0;'
+        'mso-wrap-distance-left:9pt;mso-wrap-distance-top:0;'
+        'mso-wrap-distance-right:9pt;mso-wrap-distance-bottom:0;'
+        'mso-position-horizontal:center;mso-position-horizontal-relative:text;'
+        'mso-position-vertical:absolute;mso-position-vertical-relative:text;'
+        'mso-width-relative:page;mso-height-relative:page" '
+        f'from="{start_x_pt}pt,{y_pt}pt" to="{end_x_pt}pt,{y_pt}pt" '
+        f'strokecolor="#000000" strokeweight="{stroke_weight}"/>'
+    )
+    pict.append(parse_xml(line_xml))
+    run.append(pict)
+    p.append(run)
 
 def set_paragraph_format(para, block_type='paragraph', style_config=None):
     """
@@ -436,6 +462,15 @@ def render_document(template_path: Path, output_path: Path, metadata: Dict, bloc
         # Apply style từ config
         set_paragraph_format(p, block_type, style_config)
         set_font(run, bold=block_style.get('bold', False), size=block_style.get('font_size', 13), style_config=style_config)
+
+    # Chuẩn hóa khoảng cách giữa nội dung chính và khối cuối (Nơi nhận/Ký tên):
+    # giữ đúng 1 dòng trống.
+    while trailing_elements and _is_empty_paragraph_element(trailing_elements[0]):
+        trailing_elements.pop(0)
+
+    if trailing_elements:
+        if not doc.paragraphs or doc.paragraphs[-1].text.strip() != '':
+            doc.add_paragraph('')
     
     # Add lại các phần tử cuối tài liệu (ví dụ: bảng Nơi nhận - Ký tên)
     sect_pr = None
@@ -551,6 +586,8 @@ def _format_noi_nhan_table(doc: Document, noi_nhan_text: str, style_config: Opti
     p_header.paragraph_format.first_line_indent = Inches(0)
     run_header = p_header.add_run("Nơi nhận:")
     set_font(run_header, bold=False, size=12, style_config=style_config)
+    run_header.font.bold = True
+    run_header.font.italic = True
 
     lines = [ln.strip() for ln in (noi_nhan_text or '').splitlines() if ln.strip()]
     for line in lines:
@@ -565,7 +602,7 @@ def _format_noi_nhan_table(doc: Document, noi_nhan_text: str, style_config: Opti
 
 
 def _add_title_separator_line(doc: Document, style_config: Optional[Dict] = None) -> None:
-    """Vẽ đường line ngắn (khoảng 3cm) căn giữa ngay dưới tiêu đề phụ."""
+    """Vẽ đường line VML ngắn (khoảng 3cm) căn giữa sát dưới tiêu đề phụ."""
     if style_config is None:
         style_config = load_style_config()
 
@@ -576,20 +613,26 @@ def _add_title_separator_line(doc: Document, style_config: Optional[Dict] = None
     subtitle_para = non_empty_paras[1]
     next_para = subtitle_para._p.getnext()
     if next_para is not None:
-        existing_text = "".join(next_para.itertext()).strip()
-        if set(existing_text) <= {'_'} and existing_text:
+        next_xml = next_para.xml
+        if '<w:pict' in next_xml and 'urn:schemas-microsoft-com:vml' in next_xml:
             return
 
-    line_para = doc.add_paragraph('________________')
+    line_para = doc.add_paragraph('')
     subtitle_para._p.addnext(line_para._p)
+    subtitle_para.paragraph_format.space_after = Pt(0)
     line_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
     line_para.paragraph_format.space_before = Pt(0)
-    line_para.paragraph_format.space_after = Pt(0)
+    line_para.paragraph_format.space_after = Pt(1)
     line_para.paragraph_format.line_spacing = 1.0
     line_para.paragraph_format.first_line_indent = Inches(0)
+    add_vml_line(line_para, start_x_pt=0, end_x_pt=85, y_pt=2, stroke_weight='0.75pt')
 
-    if line_para.runs:
-        set_font(line_para.runs[0], bold=False, size=12, style_config=style_config)
+
+def _is_empty_paragraph_element(element) -> bool:
+    """Kiểm tra phần tử body có phải paragraph rỗng hay không."""
+    if not element.tag.endswith('p'):
+        return False
+    return ''.join(element.itertext()).strip() == ''
 
 def test():
     """Test renderer engine với API mới"""
