@@ -134,7 +134,7 @@ def _add_ky_ten_name(doc, name="Nguyễn Minh Trí"):
     para.paragraph_format.space_before = Pt(0)
     para.paragraph_format.space_after = Pt(0)
     run = para.add_run(name)
-    set_font(run, bold=False, size=14)
+    set_font(run, bold=True, size=14)
 
 
 def _remove_vml_lines(doc):
