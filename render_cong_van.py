@@ -105,6 +105,68 @@ def _render_kinh_gui_table(doc, recipients):
 _ANCHOR_MARKER = "__ANCHOR_NOI_DUNG_CV__"
 
 
+def _remove_vml_lines(doc):
+    """Xóa các đoạn chứa đường kẻ VML (w:pict) ra khỏi tài liệu."""
+    body = doc._body._body
+    to_remove = [
+        el for el in body.findall(qn("w:p"))
+        if el.find(".//{http://schemas.openxmlformats.org/wordprocessingml/2006/main}pict") is not None
+    ]
+    for el in to_remove:
+        el.getparent().remove(el)
+
+
+def _remove_extra_blank_after_element(doc, target_element, keep=1):
+    """Giảm blank paragraphs ngay SAU target_element xuống còn keep."""
+    body = doc._body._body
+    children = list(body.iterchildren())
+    try:
+        idx = children.index(target_element)
+    except ValueError:
+        return
+    blank_paras = []
+    for el in children[idx + 1:]:
+        tag = el.tag.split("}")[-1] if "}" in el.tag else el.tag
+        if tag == "p":
+            text = "".join(r.text or "" for r in el.iter(qn("w:t"))).strip()
+            if text == "":
+                blank_paras.append(el)
+            else:
+                break
+        else:
+            break
+    # remove from beginning (furthest from next table, closest to content above)
+    excess = len(blank_paras) - keep
+    for el in blank_paras[:excess]:
+        el.getparent().remove(el)
+
+
+def _remove_extra_blank_before_element(doc, target_element, keep=1):
+    """Giảm blank paragraphs ngay TRƯỚC target_element xuống còn keep."""
+    body = doc._body._body
+    children = list(body.iterchildren())
+    try:
+        idx = children.index(target_element)
+    except ValueError:
+        return
+    blank_paras = []
+    for el in reversed(children[:idx]):
+        tag = el.tag.split("}")[-1] if "}" in el.tag else el.tag
+        if tag == "p":
+            text = "".join(r.text or "" for r in el.iter(qn("w:t"))).strip()
+            if text == "":
+                blank_paras.append(el)
+            else:
+                break
+        else:
+            break
+    # blank_paras[0] = closest to target, blank_paras[-1] = furthest
+    # keep the ones closest to target, remove the rest
+    excess = len(blank_paras) - keep
+    for el in blank_paras[keep:]:
+        el.getparent().remove(el)
+
+
 def _insert_blocks(doc, blocks):
     anchor_index = -1
     for index, paragraph in enumerate(doc.paragraphs):
@@ -259,6 +321,9 @@ def render_cong_van(noi_dung_path=DEFAULT_INPUT_JSON, output_dir=DEFAULT_OUTPUT_
     _render_kinh_gui_table(doc, metadata["kinh_gui"])
     _format_noi_nhan_table(doc, metadata["noi_nhan"])
     _normalize_default_header_blank_lines(doc)
+    _remove_vml_lines(doc)
+    _remove_extra_blank_after_element(doc, doc.tables[0]._tbl, keep=1)
+    _remove_extra_blank_before_element(doc, doc.tables[-1]._tbl, keep=1)
     doc.save(output_path)
     temp_path.unlink(missing_ok=True)
 
