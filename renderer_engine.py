@@ -492,6 +492,9 @@ def render_document(template_path: Path, output_path: Path, metadata: Dict, bloc
 
     # Chuẩn hóa khối "Nơi nhận" theo thể thức yêu cầu.
     _format_noi_nhan_table(doc, metadata.get('noi_nhan', ''), style_config)
+
+    # Chuẩn hóa cỡ chữ dòng ngày tháng ở header phải.
+    _format_date_line(doc, style_config)
     _format_date_line_font(doc, style_config)
     
     # Save output
@@ -600,6 +603,45 @@ def _format_noi_nhan_table(doc: Document, noi_nhan_text: str, style_config: Opti
         p.paragraph_format.first_line_indent = Inches(0)
         run = p.add_run(line)
         set_font(run, bold=False, size=11, style_config=style_config)
+
+
+def _format_date_line(doc: Document, style_config: Optional[Dict] = None) -> None:
+    """Chuẩn hóa dòng ngày tháng ở phần đầu văn bản về cỡ chữ 13."""
+    if style_config is None:
+        style_config = load_style_config()
+
+    # Vị trí chuẩn trong template hiện tại: bảng đầu tiên, hàng 2 cột phải.
+    if doc.tables:
+        try:
+            date_cell = doc.tables[0].cell(1, 1)
+            for para in date_cell.paragraphs:
+                if not (para.text or '').strip():
+                    continue
+                for run in para.runs:
+                    if run.text.strip():
+                        set_font(run, bold=bool(run.bold), size=13, style_config=style_config)
+                        run.font.italic = True
+                return
+        except Exception:
+            pass
+
+    # Fallback cho template khác: tìm dòng có cụm ngày tháng trong toàn bộ tài liệu.
+    all_paragraphs = list(doc.paragraphs)
+    for table in doc.tables:
+        for row in table.rows:
+            for cell in row.cells:
+                all_paragraphs.extend(cell.paragraphs)
+
+    for para in all_paragraphs:
+        text = (para.text or '').strip().lower()
+        if not text:
+            continue
+        if 'ngày' in text and 'tháng' in text and 'năm' in text:
+            for run in para.runs:
+                if run.text.strip():
+                    set_font(run, bold=bool(run.bold), size=13, style_config=style_config)
+                    run.font.italic = True
+            return
 
 
 def _format_date_line_font(doc: Document, style_config: Optional[Dict] = None) -> None:
