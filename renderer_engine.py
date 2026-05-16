@@ -492,6 +492,7 @@ def render_document(template_path: Path, output_path: Path, metadata: Dict, bloc
 
     # Chuẩn hóa khối "Nơi nhận" theo thể thức yêu cầu.
     _format_noi_nhan_table(doc, metadata.get('noi_nhan', ''), style_config)
+    _format_date_line_font(doc, style_config)
     
     # Save output
     doc.save(output_path)
@@ -599,6 +600,26 @@ def _format_noi_nhan_table(doc: Document, noi_nhan_text: str, style_config: Opti
         p.paragraph_format.first_line_indent = Inches(0)
         run = p.add_run(line)
         set_font(run, bold=False, size=11, style_config=style_config)
+
+
+def _format_date_line_font(doc: Document, style_config: Optional[Dict] = None) -> None:
+    """Ép dòng địa danh-ngày tháng về cỡ chữ 13."""
+    if style_config is None:
+        style_config = load_style_config()
+
+    date_pattern = re.compile(r"^.*?,\s*ngày\s+\d{1,2}\s+tháng\s+\d{1,2}\s+năm\s+\d{4}\s*$", re.IGNORECASE)
+
+    for para in doc.paragraphs[:30]:
+        text = (para.text or '').strip()
+        if not text:
+            continue
+        if not date_pattern.match(text):
+            continue
+
+        for run in para.runs:
+            set_font(run, bold=False, size=13, style_config=style_config)
+            run.font.italic = True
+        break
 
 
 def _add_title_separator_line(doc: Document, style_config: Optional[Dict] = None) -> None:
