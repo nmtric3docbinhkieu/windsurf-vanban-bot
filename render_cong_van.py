@@ -240,7 +240,7 @@ def _insert_blocks(doc, blocks):
         paragraph = doc.add_paragraph()
         run = paragraph.add_run(block["text"])
         set_paragraph_format(paragraph, block_type, style_config)
-        set_font(run, bold=block_style.get("bold", False), size=14 if block_type in {"paragraph", "bullet", "heading1"} else block_style.get("font_size", 13), style_config=style_config)
+        set_font(run, bold=block_style.get("bold", False), size=14, style_config=style_config)
 
     sect_pr = None
     for element in body.iterchildren():
