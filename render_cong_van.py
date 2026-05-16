@@ -11,7 +11,9 @@ from pathlib import Path
 
 from docx import Document
 from docx.enum.text import WD_ALIGN_PARAGRAPH
-from docx.shared import Pt
+from docx.oxml import OxmlElement
+from docx.oxml.ns import qn
+from docx.shared import Cm, Pt
 from docxtpl import DocxTemplate
 
 from renderer_engine import (
@@ -35,7 +37,7 @@ def _clear_cell(cell):
     cell.text = ""
 
 
-def _set_cell_lines(cell, lines, font_size=14, align=WD_ALIGN_PARAGRAPH.LEFT):
+def _set_cell_lines(cell, lines, font_sizes=None, default_size=14, align=WD_ALIGN_PARAGRAPH.LEFT, italic=False):
     _clear_cell(cell)
     for index, line in enumerate(lines):
         paragraph = cell.paragraphs[0] if index == 0 else cell.add_paragraph()
@@ -44,8 +46,26 @@ def _set_cell_lines(cell, lines, font_size=14, align=WD_ALIGN_PARAGRAPH.LEFT):
         paragraph.paragraph_format.space_after = Pt(0)
         paragraph.paragraph_format.line_spacing = 1.0
         paragraph.paragraph_format.first_line_indent = Pt(0)
+        size = font_sizes[index] if font_sizes and index < len(font_sizes) else default_size
         run = paragraph.add_run(line)
-        set_font(run, bold=False, size=font_size)
+        set_font(run, bold=False, size=size)
+        run.font.italic = italic
+
+
+def _set_table_col_widths(table, widths_cm):
+    """Set exact column widths for each cell in the table."""
+    for row in table.rows:
+        for cell_index, cell in enumerate(row.cells):
+            if cell_index >= len(widths_cm):
+                continue
+            tc = cell._tc
+            tc_pr = tc.get_or_add_tcPr()
+            for existing in tc_pr.findall(qn("w:tcW")):
+                tc_pr.remove(existing)
+            tc_w = OxmlElement("w:tcW")
+            tc_w.set(qn("w:w"), str(int(widths_cm[cell_index] * 567)))
+            tc_w.set(qn("w:type"), "dxa")
+            tc_pr.append(tc_w)
 
 
 def _find_table_with_label(doc, label):
@@ -66,26 +86,34 @@ def _render_kinh_gui_table(doc, recipients):
     while len(table.rows) < max(3, len(recipients) + 1):
         table.add_row()
 
-    _set_cell_lines(table.cell(0, 0), ["Kính gửi:"], font_size=14, align=WD_ALIGN_PARAGRAPH.LEFT)
+    # "Kính gửi:" canh phải, cột 1 nhỏ (1/3), cột 2 lớn (2/3)
+    _set_cell_lines(table.cell(0, 0), ["Kính gửi:"], default_size=14, align=WD_ALIGN_PARAGRAPH.RIGHT)
     _clear_cell(table.cell(0, 1))
 
     for row_index, recipient in enumerate(recipients, start=1):
         _clear_cell(table.cell(row_index, 0))
-        _set_cell_lines(table.cell(row_index, 1), [recipient], font_size=14, align=WD_ALIGN_PARAGRAPH.LEFT)
+        _set_cell_lines(table.cell(row_index, 1), [recipient], default_size=14, align=WD_ALIGN_PARAGRAPH.JUSTIFY)
 
     for row_index in range(len(recipients) + 1, len(table.rows)):
         _clear_cell(table.cell(row_index, 0))
         _clear_cell(table.cell(row_index, 1))
 
+    # Cột 1 = 1/2 cột 2 → tỉ lệ 1:2 trên tổng ~17cm (lề A4 chuẩn 2.5cm)
+    _set_table_col_widths(table, [4.0, 8.0])
+
+
+_ANCHOR_MARKER = "__ANCHOR_NOI_DUNG_CV__"
+
 
 def _insert_blocks(doc, blocks):
     anchor_index = -1
     for index, paragraph in enumerate(doc.paragraphs):
-        if "{{noi_dung}}" in (paragraph.text or ""):
+        if _ANCHOR_MARKER in (paragraph.text or ""):
             anchor_index = index
             break
 
     if anchor_index == -1:
+        # fallback nếu marker không tìm thấy
         for index, paragraph in enumerate(doc.paragraphs):
             if (paragraph.text or "").strip() == "":
                 anchor_index = index
@@ -144,22 +172,29 @@ def _format_cong_van_header(doc, so_ky_hieu, trich_yeu):
     if len(header_table.rows) < 2 or len(header_table.columns) < 2:
         return
 
+    # Số: size 13, trích yếu: size 12, canh giữa
     _set_cell_lines(
         header_table.cell(1, 0),
         [f"Số: {so_ky_hieu}", trich_yeu],
-        font_size=12,
-        align=WD_ALIGN_PARAGRAPH.CENTER,
-    )
-    _set_cell_lines(
-        header_table.cell(1, 1),
-        [f"Đồng Tháp, {datetime.now().day} tháng {datetime.now().month} năm {datetime.now().year}"],
-        font_size=12,
+        font_sizes=[13, 12],
         align=WD_ALIGN_PARAGRAPH.CENTER,
     )
 
+    # Ngày tháng: size 13, in nghiêng, có chữ "ngày"
+    now = datetime.now()
+    date_str = f"Đồng Tháp, ngày {now.day} tháng {now.month} năm {now.year}"
+    _set_cell_lines(
+        header_table.cell(1, 1),
+        [date_str],
+        font_sizes=[13],
+        italic=True,
+        align=WD_ALIGN_PARAGRAPH.CENTER,
+    )
+
+    # Xóa hàng dư thứ 3 trong header table
     if len(header_table.rows) > 2:
-        _clear_cell(header_table.cell(2, 0))
-        _clear_cell(header_table.cell(2, 1))
+        row_element = header_table.rows[2]._tr
+        row_element.getparent().remove(row_element)
 
 
 def _load_content_source(noi_dung_path):
@@ -212,7 +247,7 @@ def render_cong_van(noi_dung_path=DEFAULT_INPUT_JSON, output_dir=DEFAULT_OUTPUT_
         "noi_nhan": metadata["noi_nhan"],
         "kinh_gui": metadata["kinh_gui"],
         "ngay_thang": metadata["ngay_thang"],
-        "noi_dung": "",
+        "noi_dung": _ANCHOR_MARKER,  # unique marker để _insert_blocks tìm đúng anchor
     })
 
     temp_path = output_dir / f"temp_{output_path.name}"
