@@ -495,15 +495,39 @@ def render_document(template_path: Path, output_path: Path, metadata: Dict, bloc
 
     # Chuẩn hóa cỡ chữ dòng ngày tháng ở header phải.
     _format_date_line(doc, style_config)
-    _format_date_line_font(doc, style_config)
-    
+
+    # Dọn dòng trống dư ở header mặc định (trang 2+).
+    _normalize_default_header_blank_lines(doc)
+
     # Save output
     doc.save(output_path)
-    
+
     # Xóa temp file
     temp_path.unlink()
-    
+
     print(f"✅ Đã render {len(blocks)} blocks vào: {output_path}")
+
+def _normalize_default_header_blank_lines(doc: Document) -> None:
+    """Xóa toàn bộ paragraph rỗng ở cuối header mặc định (áp dụng từ trang 2)."""
+    for section in doc.sections:
+        header = section.header
+        paragraphs = list(header.paragraphs)
+        if not paragraphs:
+            continue
+
+        last_non_empty_idx = -1
+        for i, para in enumerate(paragraphs):
+            if (para.text or '').strip():
+                last_non_empty_idx = i
+
+        # Nếu header toàn dòng trống thì không đụng để tránh phá layout không mong muốn.
+        if last_non_empty_idx == -1:
+            continue
+
+        for para in paragraphs[last_non_empty_idx + 1:]:
+            if (para.text or '').strip() == '':
+                p = para._element
+                p.getparent().remove(p)
 
 def clean_content(content: str) -> str:
     """
