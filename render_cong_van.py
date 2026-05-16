@@ -53,7 +53,20 @@ def _set_cell_lines(cell, lines, font_sizes=None, default_size=14, align=WD_ALIG
 
 
 def _set_table_col_widths(table, widths_cm):
-    """Set exact column widths for each cell in the table."""
+    """Set exact column widths for each cell in the table, and set table total width."""
+    total_twips = sum(int(w * 567) for w in widths_cm)
+    tbl = table._tbl
+    tbl_pr = tbl.find(qn("w:tblPr"))
+    if tbl_pr is None:
+        tbl_pr = OxmlElement("w:tblPr")
+        tbl.insert(0, tbl_pr)
+    for existing in tbl_pr.findall(qn("w:tblW")):
+        tbl_pr.remove(existing)
+    tbl_w_el = OxmlElement("w:tblW")
+    tbl_w_el.set(qn("w:w"), str(total_twips))
+    tbl_w_el.set(qn("w:type"), "dxa")
+    tbl_pr.append(tbl_w_el)
+
     for row in table.rows:
         for cell_index, cell in enumerate(row.cells):
             if cell_index >= len(widths_cm):
@@ -98,11 +111,30 @@ def _render_kinh_gui_table(doc, recipients):
         _clear_cell(table.cell(row_index, 0))
         _clear_cell(table.cell(row_index, 1))
 
-    # Cột 1 = 1/2 cột 2 → tỉ lệ 1:2 trên tổng ~17cm (lề A4 chuẩn 2.5cm)
-    _set_table_col_widths(table, [4.0, 8.0])
+    # Cột 1 = 1/2 cột 2 → tỉ lệ 1:2, tổng 16cm (bằng vùng text A4 lề 2.5cm)
+    _set_table_col_widths(table, [round(16/3, 2), round(32/3, 2)])
+
+    # Đảm bảo spacing = 0 cho mọi paragraph trong mọi cell
+    for row in table.rows:
+        for cell in row.cells:
+            for para in cell.paragraphs:
+                para.paragraph_format.space_before = Pt(0)
+                para.paragraph_format.space_after = Pt(0)
 
 
 _ANCHOR_MARKER = "__ANCHOR_NOI_DUNG_CV__"
+
+
+def _add_ky_ten_name(doc, name="Nguyễn Minh Trí"):
+    """Thêm tên người ký vào cuối ô ký tên (right cell của bảng cuối)."""
+    last_table = doc.tables[-1]
+    right_cell = last_table.cell(0, 1)
+    para = right_cell.add_paragraph()
+    para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    para.paragraph_format.space_before = Pt(0)
+    para.paragraph_format.space_after = Pt(0)
+    run = para.add_run(name)
+    set_font(run, bold=False, size=14)
 
 
 def _remove_vml_lines(doc):
@@ -320,6 +352,7 @@ def render_cong_van(noi_dung_path=DEFAULT_INPUT_JSON, output_dir=DEFAULT_OUTPUT_
     _format_cong_van_header(doc, metadata["so_ky_hieu"], metadata["trich_yeu"])
     _render_kinh_gui_table(doc, metadata["kinh_gui"])
     _format_noi_nhan_table(doc, metadata["noi_nhan"])
+    _add_ky_ten_name(doc)
     _normalize_default_header_blank_lines(doc)
     _remove_vml_lines(doc)
     _remove_extra_blank_after_element(doc, doc.tables[0]._tbl, keep=1)
