@@ -461,7 +461,7 @@ def render_document(template_path: Path, output_path: Path, metadata: Dict, bloc
         
         # Apply style từ config
         set_paragraph_format(p, block_type, style_config)
-        set_font(run, bold=block_style.get('bold', False), size=block_style.get('font_size', 13), style_config=style_config)
+        set_font(run, bold=block_style.get('bold', False), size=14, style_config=style_config)
 
     # Chuẩn hóa khoảng cách giữa nội dung chính và khối cuối (Nơi nhận/Ký tên):
     # giữ đúng 1 dòng trống.
