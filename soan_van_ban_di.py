@@ -1049,7 +1049,7 @@ def tao_van_ban_docx(du_lieu: dict, ten_file_goc: str) -> str:
     Orchestration layer: Chuẩn bị metadata và gọi renderer_engine.
     Không làm styling - đó là trách nhiệm của renderer_engine.
     """
-    from renderer_engine import render_document, parse_content_to_blocks, clean_content
+    from render_ke_hoach import render_document, parse_content_to_blocks, clean_content
     
     # Tạo thư mục van-ban-di nếu chưa có
     duong_dan_thu_muc = Path(__file__).parent / THU_MUC_VAN_BAN_DI
