@@ -42,6 +42,24 @@ jobs:
         VPDT_PASSWORD: ${{ secrets.VPDT_PASSWORD }}
         TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
         TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+
+    - name: Check VPDT network reachability
+      run: |
+        echo "Checking DNS resolution..."
+        if ! getent hosts vpdt.dongthap.gov.vn; then
+          echo "VPDT_NETWORK_ERROR: DNS resolution failed for vpdt.dongthap.gov.vn"
+          exit 1
+        fi
+
+        echo "Checking HTTPS connectivity..."
+        if ! curl -sS -I --connect-timeout 10 --max-time 25 https://vpdt.dongthap.gov.vn > /tmp/vpdt_head.txt; then
+          echo "VPDT_NETWORK_ERROR: Runner cannot reach https://vpdt.dongthap.gov.vn"
+          echo "This is usually IP/network blocking from server side, not a secret issue."
+          exit 1
+        fi
+
+        echo "VPDT reachable. First response lines:"
+        head -n 5 /tmp/vpdt_head.txt
     
     - name: Install dependencies
       run: npm ci
