@@ -1,12 +1,19 @@
-name: Crawl VanBan Bot
+name: VPDT Cloud Check
 
 on:
   schedule:
-    - cron: '*/30 * * * *'  # Mỗi 30 phút
-  workflow_dispatch:         # Chạy thủ công
+    - cron: '0 */3 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: vpdt-cloud-check
+  cancel-in-progress: false
+
+permissions:
+  contents: write
 
 jobs:
-  crawl:
+  check-vpdt:
     runs-on: ubuntu-latest
     
     steps:
@@ -16,15 +23,31 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: '20'
+        cache: 'npm'
+        cache-dependency-path: package-lock.json
     
     - name: Install dependencies
       run: npm ci
       
     - name: Install Playwright browsers
-      run: npx playwright install chromium
+      run: npx playwright install --with-deps chromium
     
-    - name: Run crawl script
-      run: node scripts/crawl.js
+    - name: Run cloud checker
+      run: node cloud-check-vpdt.js
       env:
         VPDT_USERNAME: ${{ secrets.VPDT_USERNAME }}
         VPDT_PASSWORD: ${{ secrets.VPDT_PASSWORD }}
+        TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+
+    - name: Commit state if changed
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        if git diff --quiet -- state/known-vanban.json; then
+          echo "State unchanged"
+        else
+          git add state/known-vanban.json
+          git commit -m "chore: update vpdt known docs state"
+          git push
+        fi

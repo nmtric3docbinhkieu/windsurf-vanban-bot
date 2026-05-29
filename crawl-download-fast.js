@@ -4,8 +4,8 @@ const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 const { notifyNewVanBan: notifyTelegram } = require('./telegram-notify');
 
-const USERNAME = '087086001224';
-const PASSWORD = 'Dongthap@123';
+const USERNAME = process.env.VPDT_USERNAME;
+const PASSWORD = process.env.VPDT_PASSWORD;
 
 // Hàm load danh sách van ban da xu ly
 function loadVanBanDaXuLy() {
@@ -58,6 +58,10 @@ async function saveVanBanMoi(thongTinVanBan) {
 }
 
 async function crawlAndDownload() {
+  if (!USERNAME || !PASSWORD) {
+    throw new Error('Thiếu VPDT_USERNAME hoặc VPDT_PASSWORD trong biến môi trường');
+  }
+
   const browser = await chromium.launch({ 
     headless: false,
     executablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'
