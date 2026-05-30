@@ -4,7 +4,7 @@
 from docx import Document
 from pathlib import Path
 
-template_path = Path(__file__).parent / "TEMPLATE.docx"
+template_path = Path(__file__).resolve().parents[1] / "TEMPLATE.docx"
 doc = Document(template_path)
 
 print("=== NỘI DUNG TEMPLATE.DOCX ===")

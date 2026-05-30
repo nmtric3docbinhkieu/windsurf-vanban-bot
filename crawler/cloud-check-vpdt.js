@@ -1,12 +1,14 @@
 const fs = require('fs');
 const path = require('path');
 const { chromium } = require('playwright');
-require('dotenv').config({ path: path.join(__dirname, '.env') });
-const { notifyNewVanBan } = require('./telegram-notify');
+const BOT_DIR = path.join(__dirname, '..');
+
+require('dotenv').config({ path: path.join(BOT_DIR, '.env') });
+const { notifyNewVanBan } = require('../integrations/telegram-notify');
 
 const USERNAME = process.env.VPDT_USERNAME;
 const PASSWORD = process.env.VPDT_PASSWORD;
-const STATE_FILE = path.join(__dirname, 'state', 'known-vanban.json');
+const STATE_FILE = path.join(BOT_DIR, 'state', 'known-vanban.json');
 
 function ensureStateFile() {
   const stateDir = path.dirname(STATE_FILE);

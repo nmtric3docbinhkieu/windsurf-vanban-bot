@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
 """Test validation layer"""
 
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
 from renderer_engine import validate_blocks, parse_content_to_blocks
 
 # Test 1: Valid blocks

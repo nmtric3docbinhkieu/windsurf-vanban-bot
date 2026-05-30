@@ -6,11 +6,13 @@
 
 const fs = require('fs');
 const path = require('path');
+const BOT_DIR = path.join(__dirname, '..');
+const PROJECT_ROOT = path.join(BOT_DIR, '..');
 
 const CONFIG = {
-  vanBanDenPath: path.join(__dirname, '..', 'van-ban-den'),
-  targetPath: path.join(__dirname, '..', 'van-ban-den-da-doi-ten'),
-  logPath: path.join(__dirname, '..', 'logs', 'processed-files.json'),
+  vanBanDenPath: path.join(PROJECT_ROOT, 'van-ban-den'),
+  targetPath: path.join(PROJECT_ROOT, 'van-ban-den-da-doi-ten'),
+  logPath: path.join(PROJECT_ROOT, 'logs', 'processed-files.json'),
 };
 
 // Kiểm tra file đã đúng format

@@ -4,7 +4,8 @@
 from docx import Document
 from pathlib import Path
 
-output_file = Path(__file__).parent.parent / "van-ban-di" / "test_renderer_v4.docx"
+project_root = Path(__file__).resolve().parents[2]
+output_file = project_root / "van-ban-di" / "test_renderer_v4.docx"
 doc = Document(output_file)
 
 print("=== KIỂM TRA FORMATTING ===")

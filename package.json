@@ -4,8 +4,8 @@
   "description": "VPDT crawler and notification tools",
   "main": "index.js",
   "scripts": {
-    "crawl:local": "node crawl-download-fast.js",
-    "crawl:cloud": "node cloud-check-vpdt.js"
+    "crawl:local": "node crawler/crawl-download-fast.js",
+    "crawl:cloud": "node crawler/cloud-check-vpdt.js"
   },
   "repository": {
     "type": "git",

@@ -1,8 +1,11 @@
 const { chromium } = require('playwright');
 const fs = require('fs');
 const path = require('path');
-require('dotenv').config({ path: path.join(__dirname, '.env') });
-const { notifyNewVanBan: notifyTelegram } = require('./telegram-notify');
+const BOT_DIR = path.join(__dirname, '..');
+const PROJECT_ROOT = path.join(BOT_DIR, '..');
+
+require('dotenv').config({ path: path.join(BOT_DIR, '.env') });
+const { notifyNewVanBan: notifyTelegram } = require('../integrations/telegram-notify');
 
 const USERNAME = process.env.VPDT_USERNAME;
 const PASSWORD = process.env.VPDT_PASSWORD;
@@ -10,7 +13,7 @@ const PASSWORD = process.env.VPDT_PASSWORD;
 // Hàm load danh sách van ban da xu ly
 function loadVanBanDaXuLy() {
   try {
-    const logsPath = path.join(__dirname, '..', 'logs', 'van_ban_den_2025_2026.json');
+    const logsPath = path.join(PROJECT_ROOT, 'logs', 'van_ban_den_2025_2026.json');
     if (fs.existsSync(logsPath)) {
       const data = JSON.parse(fs.readFileSync(logsPath, 'utf8'));
       const soHieuSet = new Set();
@@ -29,7 +32,7 @@ function loadVanBanDaXuLy() {
 // Hàm luu van ban moi vao logs
 async function saveVanBanMoi(thongTinVanBan) {
   try {
-    const logsPath = path.join(__dirname, '..', 'logs', 'van_ban_den_2025_2026.json');
+    const logsPath = path.join(PROJECT_ROOT, 'logs', 'van_ban_den_2025_2026.json');
     let data = { tong_so_van_ban: 0, ngay_xuat_du_lieu: new Date().toISOString().split('T')[0], nguon: "Hệ thống QLVBĐH tỉnh Đồng Tháp - Tab Chờ duyệt", danh_sach_van_ban: [] };
     
     if (fs.existsSync(logsPath)) {
@@ -76,7 +79,7 @@ async function crawlAndDownload() {
   
   try {
     console.log('1. Chuẩn bị thư mục download...');
-    const downloadsDir = path.join(__dirname, '..', 'van-ban-den');
+    const downloadsDir = path.join(PROJECT_ROOT, 'van-ban-den');
     if (!fs.existsSync(downloadsDir)) {
       fs.mkdirSync(downloadsDir, { recursive: true });
     }
@@ -134,7 +137,7 @@ async function crawlAndDownload() {
     await page.waitForTimeout(3000);
     
     // Chụp màn hình để debug
-    await page.screenshot({ path: 'debug-table.png', fullPage: true });
+    await page.screenshot({ path: path.join(BOT_DIR, 'debug-table.png'), fullPage: true });
     console.log('   Đã chụp màn hình table: debug-table.png');
     
     // Đợi table hoặc Material table

@@ -207,7 +207,7 @@ def doc_noi_dung_file(duong_dan: str) -> str:
     elif ext == ".pdf":
         # Gọi script Node.js pdf-reader.js để đọc PDF
         try:
-            script_path = Path(__file__).parent / "pdf-reader.js"
+            script_path = Path(__file__).parent / "crawler" / "pdf-reader.js"
             result = subprocess.run(
                 ["node", "-e", f"""
 const readPDF = require('{script_path}').readPDF;

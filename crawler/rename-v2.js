@@ -17,6 +17,8 @@
 const fs      = require('fs');
 const path    = require('path');
 const mammoth = require('mammoth');
+const BOT_DIR = path.join(__dirname, '..');
+const PROJECT_ROOT = path.join(BOT_DIR, '..');
 
 // ✅ Dùng module đọc PDF dùng chung
 const { readPDF } = require('./pdf-reader');
@@ -24,9 +26,9 @@ const { readPDF } = require('./pdf-reader');
 // ==================== CONFIG ====================
 
 const CONFIG = {
-  vanBanDenPath: path.join(__dirname, '..', 'van-ban-den'),
-  logPath      : path.join(__dirname, '..', 'logs', 'processed-files.json'),
-  manualPath   : path.join(__dirname, '..', 'logs', 'need-manual.json'),
+  vanBanDenPath: path.join(PROJECT_ROOT, 'van-ban-den'),
+  logPath      : path.join(PROJECT_ROOT, 'logs', 'processed-files.json'),
+  manualPath   : path.join(PROJECT_ROOT, 'logs', 'need-manual.json'),
   dryRun       : process.argv.includes('--dry-run'),
   force        : process.argv.includes('--force'),
 };

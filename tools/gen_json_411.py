@@ -6,10 +6,12 @@ Based on provincial plan, adapted to THPT Đốc Binh Kiều
 """
 
 import json
-from datetime import datetime
+from pathlib import Path
+
+project_root = Path(__file__).resolve().parents[2]
 
 # Load extracted PDF content
-pdf_path = r'd:\OneDrive 2\OneDrive - moet.edu.vn\DuAn_VanBan_TruongDBK\van-ban-den-xu-ly\KH411_extracted.txt'
+pdf_path = project_root / 'van-ban-den-xu-ly' / 'KH411_extracted.txt'
 with open(pdf_path, 'r', encoding='utf-8') as f:
     pdf_content = f.read()
 
@@ -118,7 +120,7 @@ noi_dung_json = {
 }
 
 # Save to JSON file
-output_path = r'd:\OneDrive 2\OneDrive - moet.edu.vn\DuAn_VanBan_TruongDBK\vanban-bot\noi_dung_ke_hoach_411.json'
+output_path = project_root / 'vanban-bot' / 'noi_dung_ke_hoach_411.json'
 with open(output_path, 'w', encoding='utf-8') as f:
     json.dump(noi_dung_json, f, ensure_ascii=False, indent=2)
 
