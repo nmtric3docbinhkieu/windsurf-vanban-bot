@@ -1,0 +1,51 @@
+{
+  "styles": {
+    "heading1": {
+      "bold": true,
+      "font_size": 14,
+      "indent_cm": 1.25,
+      "spacing_before": 6,
+      "spacing_after": 6,
+      "line_spacing": 1.0
+    },
+    "heading2": {
+      "bold": true,
+      "font_size": 13,
+      "indent_cm": 1.25,
+      "spacing_before": 6,
+      "spacing_after": 6,
+      "line_spacing": 1.0
+    },
+    "heading3": {
+      "bold": false,
+      "font_size": 13,
+      "indent_cm": 1.25,
+      "spacing_before": 6,
+      "spacing_after": 6,
+      "line_spacing": 1.0
+    },
+    "paragraph": {
+      "bold": false,
+      "font_size": 13,
+      "indent_cm": 1.25,
+      "spacing_before": 6,
+      "spacing_after": 6,
+      "line_spacing": 1.0
+    },
+    "bullet": {
+      "bold": false,
+      "font_size": 13,
+      "indent_cm": 1.25,
+      "spacing_before": 6,
+      "spacing_after": 6,
+      "line_spacing": 1.0
+    }
+  },
+  "font": {
+    "name": "Times New Roman",
+    "vietnamese_support": true
+  },
+  "paragraph": {
+    "alignment": "justify"
+  }
+}

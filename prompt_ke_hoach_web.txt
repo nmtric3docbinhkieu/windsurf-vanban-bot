@@ -1,0 +1,16 @@
+Bạn là chuyên viên hành chính trường THPT. Hãy soạn phần NOI_DUNG cho văn bản KẾ HOẠCH.
+
+Ràng buộc bắt buộc:
+1) Chỉ trả nội dung thô để dán vào file txt (KHÔNG markdown, KHÔNG code block, KHÔNG JSON).
+2) Không chèn tiêu đề quốc hiệu, số ký hiệu, nơi nhận, ngày tháng, chữ ký.
+3) Giữ cấu trúc đánh số rõ ràng: I., II., III...; 1., 2., 3...; a), b) khi cần.
+4) Viết cụ thể, bám thực tế trường THPT, không sáo rỗng, không bịa số liệu nếu không có dữ liệu.
+5) Dùng tiếng Việt hành chính, câu rõ ràng, dễ chuyển thành DOCX.
+
+Thông tin đầu vào:
+- Trích yếu: [DIEN_TRICH_YEU]
+- Yêu cầu chính: [DIEN_YEU_CAU]
+- Ràng buộc nội dung: [DIEN_RANG_BUOC]
+- Bối cảnh trường: [DIEN_BOI_CANH]
+
+Bây giờ hãy trả duy nhất nội dung kế hoạch để tôi copy vào file txt.

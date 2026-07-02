@@ -1,0 +1,88 @@
+name: VPDT Cloud Check
+
+on:
+  schedule:
+    - cron: '0 */3 * * *'
+  workflow_dispatch:
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+concurrency:
+  group: vpdt-cloud-check
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  check-vpdt:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v5
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v5
+      with:
+        node-version: '22'
+        cache: 'npm'
+        cache-dependency-path: package-lock.json
+
+    - name: Validate required secrets
+      run: |
+        missing=0
+        if [ -z "${VPDT_USERNAME}" ]; then echo "Missing secret: VPDT_USERNAME"; missing=1; fi
+        if [ -z "${VPDT_PASSWORD}" ]; then echo "Missing secret: VPDT_PASSWORD"; missing=1; fi
+        if [ -z "${TELEGRAM_BOT_TOKEN}" ]; then echo "Missing secret: TELEGRAM_BOT_TOKEN"; missing=1; fi
+        if [ -z "${TELEGRAM_CHAT_ID}" ]; then echo "Missing secret: TELEGRAM_CHAT_ID"; missing=1; fi
+        if [ "$missing" -ne 0 ]; then exit 1; fi
+      env:
+        VPDT_USERNAME: ${{ secrets.VPDT_USERNAME }}
+        VPDT_PASSWORD: ${{ secrets.VPDT_PASSWORD }}
+        TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+
+    - name: Check VPDT network reachability
+      run: |
+        echo "Checking DNS resolution..."
+        if ! getent hosts vpdt.dongthap.gov.vn; then
+          echo "VPDT_NETWORK_ERROR: DNS resolution failed for vpdt.dongthap.gov.vn"
+          exit 1
+        fi
+
+        echo "Checking HTTPS connectivity..."
+        if ! curl -sS -I --connect-timeout 10 --max-time 25 https://vpdt.dongthap.gov.vn > /tmp/vpdt_head.txt; then
+          echo "VPDT_NETWORK_ERROR: Runner cannot reach https://vpdt.dongthap.gov.vn"
+          echo "This is usually IP/network blocking from server side, not a secret issue."
+          exit 1
+        fi
+
+        echo "VPDT reachable. First response lines:"
+        head -n 5 /tmp/vpdt_head.txt
+    
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Install Playwright browsers
+      run: npx playwright install --with-deps chromium
+    
+    - name: Run cloud checker
+      run: node cloud-check-vpdt.js
+      env:
+        VPDT_USERNAME: ${{ secrets.VPDT_USERNAME }}
+        VPDT_PASSWORD: ${{ secrets.VPDT_PASSWORD }}
+        TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+
+    - name: Commit state if changed
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        if git diff --quiet -- state/known-vanban.json; then
+          echo "State unchanged"
+        else
+          git add state/known-vanban.json
+          git commit -m "chore: update vpdt known docs state"
+          git push
+        fi

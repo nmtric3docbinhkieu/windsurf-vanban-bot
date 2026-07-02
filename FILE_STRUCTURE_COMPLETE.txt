@@ -1,0 +1,195 @@
+📁 CẤU TRÚC ĐẦY ĐỦ CỦA DỰ ÁN
+================================================================================
+
+d:\VIET-PHAN-MEM\VANBAN-BOT/
+│
+├─── 📄 FILE CẤU HÌNH & TEMPLATE
+│    ├── requirements.txt                (Python packages)
+│    ├── package.json                    (NPM config)
+│    ├── package-lock.json               (NPM lock)
+│    ├── style_config.json               (Styling config)
+│    ├── .env.example                    (Environment example)
+│    ├── .gitignore
+│    │
+│    └─── 📄 TEMPLATE DOCX
+│         ├── TEMPLATE.docx              (Mẫu đơn chung)
+│         ├── TEMPLATE_CV.docx           (Mẫu CV)
+│         └── THONG TIN TRUONG THPT DOC BINH KIEU 2026.docx (Thông tin trường)
+│
+├─── 🐍 PYTHON SCRIPTS CHÍNH
+│    ├── run_ke_hoach.py                 (Script chạy kế hoạch)
+│    ├── soan_van_ban_di.py              (Soạn văn bản đi - 51KB)
+│    ├── render_ke_hoach.py              (Render kế hoạch)
+│    ├── render_cong_van.py              (Render công văn)
+│    ├── render_ke_hoach_from_txt.py     (Render từ TXT)
+│    ├── renderer_engine.py              (Engine render)
+│    ├── run_ai_free_draft.py            (AI dự thảo)
+│    │
+│    └─── 📄 DATA INPUT
+│         ├── noi_dung_ke_hoach.txt      (Nội dung kế hoạch)
+│         └── prompt_ke_hoach_web.txt    (Prompt cho web)
+│
+├─── 📂 crawler/ (Node.js Crawler Scripts)
+│    ├── cloud-check-vpdt.js             (Cloud checker cho VPDT)
+│    ├── crawl-download-fast.js          (Fast crawler - 29KB)
+│    ├── move-renamed-files.js           (Quản lý file)
+│    ├── pdf-reader.js                   (PDF reader)
+│    └── rename-v2.js                    (Rename utility)
+│
+├─── 🛠️ tools/ (Python Utilities)
+│    ├── __init__.py
+│    ├── chuan_hoa_van_ban.py            (Chuẩn hóa văn bản)
+│    ├── extract_pdf_411.py              (Extract PDF 411)
+│    ├── gen_json_411.py                 (Generate JSON 411)
+│    ├── header-pythondocx.py            (Header DOCX)
+│    └── read_docx.py                    (Read DOCX utility)
+│
+├─── 📝 tests/ (Test Files)
+│    ├── check_formatting.py             (Format check)
+│    ├── check_output.py                 (Output check)
+│    ├── check_template.py               (Template check)
+│    ├── test_integration.py             (Integration test)
+│    ├── test_validation.py              (Validation test)
+│    ├── test_vml_line.py                (VML line test)
+│    ├── test_input.txt                  (Test input)
+│    ├── test_noidung.txt                (Test content)
+│    ├── test_vml_output.docx
+│    └── test_vml_output_v8.docx
+│
+├─── 📚 docs/ (Documentation)
+│    ├── PROJECT_STRUCTURE.md
+│    ├── architecture/
+│    │   ├── ARCHITECTURE.md             (Kiến trúc hệ thống)
+│    │   └── MIGRATION.md                (Migration guide)
+│    │
+│    └── guides/
+│        ├── chuc-nang-project.md        (Chức năng dự án)
+│        ├── HUONG_DAN_CAI_DAT.md        (Hướng dẫn cài đặt)
+│        ├── HUONG_DAN_CLOUD_VPDT.md    (Hướng dẫn Cloud VPDT)
+│        ├── HUONG_DAN_SOAN_VAN_BAN.md  (Hướng dẫn soạn văn bản)
+│        ├── HUONG_DAN_TEMPLATE.md       (Hướng dẫn template)
+│        ├── HUONG_DAN_TICH_HOP.md       (Hướng dẫn tích hợp)
+│        ├── README_RENDERER.md          (README Renderer)
+│        ├── README-AUTO-RUN.md          (Auto run guide)
+│        └── ZALO_SETUP_GUIDE.md        (Zalo setup)
+│
+├─── 💡 examples/ (Example Code)
+│    └── basic_usage.py
+│
+├─── 🔌 integrations/ (Integration Plugins)
+│    ├── callback-server.js              (Callback server)
+│    ├── telegram-notify.js              (Telegram notification)
+│    └── zalo-notify.js                  (Zalo notification)
+│
+├─── 💾 state/ (State Management)
+│    └── known-vanban.json               (Known documents state)
+│
+├─── ⚙️ Automation Scripts
+│    ├── SETUP_TU_DONG.bat               (Auto setup script)
+│    └── run-check-hidden.vbs            (Check hidden files)
+│
+├─── 🔧 Hidden Directories
+│    ├── .github/                        (GitHub config)
+│    ├── .windsurf/                      (Windsurf IDE config)
+│    ├── __pycache__/                    (Python cache)
+│    └── node_modules/                   (126 NPM packages)
+│
+================================================================================
+✅ KIỂM ĐỊNH CÁC YÊU CẦU CHÍNH
+================================================================================
+
+FILE SOURCE CODE:          ✓ HOÀN CHỈ (toàn bộ .py, .js)
+FILE TEMPLATE:             ✓ HOÀN CHỈ (TEMPLATE.docx, TEMPLATE_CV.docx)
+FILE CẤU HÌNH:             ✓ HOÀN CHỈ (package.json, style_config.json)
+DOCUMENTATION:             ✓ HOÀN CHỈ (guides, architecture)
+PYTHON UTILS:              ✓ HOÀN CHỈ (tools/*)
+NPM PACKAGES:              ✓ HOÀN CHỈ (node_modules - 126 packages)
+TEST FILES:                ✓ HOÀN CHỈ (tests/*)
+EXAMPLE CODE:              ✓ HOÀN CHỈ (examples/)
+INTEGRATION PLUGINS:       ✓ HOÀN CHỈ (integrations/)
+
+PYTHON DEPENDENCIES:       ⚠️  CHƯA CÀI (chỉ có requirements.txt)
+ENVIRONMENT CONFIG:        ⚠️  CHƯA CẤU HÌNH (chỉ có .env.example)
+
+================================================================================
+🎯 MỤC ĐÍCH TỪNG THÀNH PHẦN
+================================================================================
+
+1. CRAWLER (crawler/)
+   - cloud-check-vpdt.js: Kiểm tra VPDT trên cloud
+   - crawl-download-fast.js: Tải xuống nhanh từ VPDT
+   - pdf-reader.js: Đọc file PDF
+   - rename-v2.js: Đổi tên file
+   - move-renamed-files.js: Di chuyển file đã đổi tên
+
+2. RENDERING (render_*.py, renderer_engine.py)
+   - Chuyển đổi nội dung sang định dạng DOCX
+   - Hỗ trợ nhiều loại template
+   - Áp dụng styling từ style_config.json
+
+3. DOCUMENT GENERATION (soan_van_ban_di.py)
+   - Soạn văn bản theo template
+   - Tích hợp AI (OpenAI)
+   - Hỗ trợ xuất bản DOCX
+
+4. UTILITIES (tools/)
+   - Chuẩn hóa văn bản
+   - Extract/Generate JSON từ PDF
+   - Đọc DOCX files
+   - Header/Footer handling
+
+5. INTEGRATIONS
+   - Telegram notification
+   - Zalo OA notification
+   - Callback server
+
+6. STATE MANAGEMENT
+   - known-vanban.json: Lưu trữ tài liệu đã xử lý
+
+================================================================================
+📊 THỐNG KÊ DỰ ÁN
+================================================================================
+
+Tổng số file:              40+ files
+Thư mục chính:             11 directories
+Python scripts:            7 files (~100KB code)
+Node.js scripts:           5 files (~60KB code)
+Template files:            3 DOCX files
+Documentation:             10+ markdown files
+Test files:                8+ test files
+NPM packages:              126 packages (node_modules/)
+
+================================================================================
+💾 DỮ LIỆU PROJECT
+================================================================================
+
+PYTHON REQUIREMENTS (4 packages):
+  openai>=1.0.0
+  python-docx>=1.1.0
+  docxtpl>=0.20.0
+  python-dotenv>=1.0.0
+
+NPM DEPENDENCIES (125+ packages) including:
+  axios, dotenv, express, mammoth, pdf-lib, pdf-parse, 
+  playwright, tesseract.js, pdfreader, pdf-to-img, ...
+
+================================================================================
+✨ KẾT LUẬN
+================================================================================
+
+✓ Dự án VANBAN-BOT được tải xuống HOÀN TOÀN từ GitHub
+✓ Toàn bộ source code, template, docs đều có
+✓ Node.js environment hoàn tất (126 npm packages)
+✓ Python executable đã được cài đặt (Microsoft Store)
+
+⚠️  CẦN HOÀN THÀNH:
+  1. pip install -r requirements.txt (4 packages)
+  2. Cấu hình .env (copy từ .env.example)
+  3. Lấy API keys nếu cần (OpenAI, Zalo, Telegram)
+
+🚀 SAU ĐÓ CÓ THỂ CHẠY NGAY:
+  - python run_ke_hoach.py
+  - npm run crawl:local
+  - python soan_van_ban_di.py
+
+================================================================================
