@@ -27,6 +27,7 @@
 const fs   = require('fs');
 const os   = require('os');
 const path = require('path');
+const { PDFParse } = require('pdf-parse');
 const { execFile } = require('child_process');
 
 // ==================== CONFIG ====================
@@ -94,6 +95,22 @@ async function readWithPdftotext(filePath) {
     return text.trim();
   } catch (err) {
     console.warn(`   ⚠️  pdftotext thất bại: ${err.message}`);
+    return '';
+  }
+}
+
+/**
+ * Fallback đọc PDF bằng thư viện JS (không cần cài poppler ở hệ điều hành)
+ */
+async function readWithPdfParse(filePath) {
+  try {
+    const dataBuffer = fs.readFileSync(filePath);
+    const parser = new PDFParse({ data: dataBuffer });
+    const data = await parser.getText();
+    await parser.destroy();
+    return (data.text || '').trim();
+  } catch (err) {
+    console.warn(`   ⚠️  pdf-parse thất bại: ${err.message}`);
     return '';
   }
 }
@@ -210,7 +227,7 @@ async function readWithOCR(filePath, options = {}) {
  * @param {boolean} [options.headerOnly=false] - Chỉ đọc trang 1 (dùng cho đổi tên file)
  * @param {function} [options.onProgress]     - Callback tiến độ OCR(trang, tổng)
  *
- * @returns {Promise<{ text: string, method: 'pdftotext'|'ocr', pages: number }>}
+ * @returns {Promise<{ text: string, method: 'pdftotext'|'pdf-parse'|'ocr', pages: number }>}
  */
 async function readPDF(filePath, options = {}) {
   if (!fs.existsSync(filePath)) {
@@ -244,6 +261,19 @@ async function readPDF(filePath, options = {}) {
     } else {
       console.log(`   ℹ️  Text quá ngắn (${text.length} ký tự) → chuyển sang OCR`);
     }
+
+    // Bước 1b: Fallback bằng pdf-parse khi thiếu poppler hoặc pdftotext không hiệu quả
+    const jsText = await readWithPdfParse(filePath);
+    if (jsText.length >= OCR_CONFIG.minTextLength) {
+      const hasSoHieuJs = /Số[:\s]*\s*\d+\/[A-ZĐ0-9\-]+|\d{2,4}\/[A-ZĐ0-9\-]+/i.test(jsText);
+      if (hasSoHieuJs) {
+        const finalText = options.headerOnly
+          ? jsText.split('\f')[0].trim()
+          : jsText;
+
+        return { text: finalText, method: 'pdf-parse', pages: null };
+      }
+    }
   }
 
   // Bước 2: OCR (PDF scan hoặc forceOCR)
@@ -260,6 +290,7 @@ module.exports = {
 
   // Export riêng cho trường hợp muốn kiểm soát thủ công
   readWithPdftotext,
+  readWithPdfParse,
   readWithOCR,
   countPages,
   OCR_CONFIG,

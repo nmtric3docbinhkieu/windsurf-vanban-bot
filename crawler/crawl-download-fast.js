@@ -2,7 +2,9 @@ const { chromium } = require('playwright');
 const fs = require('fs');
 const path = require('path');
 const BOT_DIR = path.join(__dirname, '..');
-const PROJECT_ROOT = path.join(BOT_DIR, '..');
+const DATA_ROOT = process.env.VANBAN_DATA_ROOT
+  ? path.resolve(process.env.VANBAN_DATA_ROOT)
+  : path.join(BOT_DIR, '..');
 
 require('dotenv').config({ path: path.join(BOT_DIR, '.env') });
 const { notifyNewVanBan: notifyTelegram } = require('../integrations/telegram-notify');
@@ -10,10 +12,28 @@ const { notifyNewVanBan: notifyTelegram } = require('../integrations/telegram-no
 const USERNAME = process.env.VPDT_USERNAME;
 const PASSWORD = process.env.VPDT_PASSWORD;
 
+function resolveBrowserExecutablePath() {
+  const candidates = [
+    process.env.BROWSER_PATH,
+    'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+    'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
+    'C:\\Program Files\\CocCoc\\Browser\\Application\\browser.exe',
+    'C:\\Program Files (x86)\\CocCoc\\Browser\\Application\\browser.exe'
+  ].filter(Boolean);
+
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate)) {
+      return candidate;
+    }
+  }
+
+  return null;
+}
+
 // Hàm load danh sách van ban da xu ly
 function loadVanBanDaXuLy() {
   try {
-    const logsPath = path.join(PROJECT_ROOT, 'logs', 'van_ban_den_2025_2026.json');
+    const logsPath = path.join(DATA_ROOT, 'logs', 'van_ban_den_2025_2026.json');
     if (fs.existsSync(logsPath)) {
       const data = JSON.parse(fs.readFileSync(logsPath, 'utf8'));
       const soHieuSet = new Set();
@@ -32,7 +52,12 @@ function loadVanBanDaXuLy() {
 // Hàm luu van ban moi vao logs
 async function saveVanBanMoi(thongTinVanBan) {
   try {
-    const logsPath = path.join(PROJECT_ROOT, 'logs', 'van_ban_den_2025_2026.json');
+    const logsDir = path.join(DATA_ROOT, 'logs');
+    if (!fs.existsSync(logsDir)) {
+      fs.mkdirSync(logsDir, { recursive: true });
+    }
+
+    const logsPath = path.join(DATA_ROOT, 'logs', 'van_ban_den_2025_2026.json');
     let data = { tong_so_van_ban: 0, ngay_xuat_du_lieu: new Date().toISOString().split('T')[0], nguon: "Hệ thống QLVBĐH tỉnh Đồng Tháp - Tab Chờ duyệt", danh_sach_van_ban: [] };
     
     if (fs.existsSync(logsPath)) {
@@ -65,9 +90,16 @@ async function crawlAndDownload() {
     throw new Error('Thiếu VPDT_USERNAME hoặc VPDT_PASSWORD trong biến môi trường');
   }
 
+  const executablePath = resolveBrowserExecutablePath();
+  if (!executablePath) {
+    throw new Error('Khong tim thay Chrome/CocCoc. Cai Chrome hoac CocCoc, hoac set BROWSER_PATH trong .env');
+  }
+
+  console.log(`Su dung trinh duyet: ${executablePath}`);
+
   const browser = await chromium.launch({ 
     headless: false,
-    executablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'
+    executablePath
   });
   
   const context = await browser.newContext({
@@ -79,7 +111,7 @@ async function crawlAndDownload() {
   
   try {
     console.log('1. Chuẩn bị thư mục download...');
-    const downloadsDir = path.join(PROJECT_ROOT, 'van-ban-den');
+    const downloadsDir = path.join(DATA_ROOT, 'van-ban-den');
     if (!fs.existsSync(downloadsDir)) {
       fs.mkdirSync(downloadsDir, { recursive: true });
     }

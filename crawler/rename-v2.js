@@ -18,7 +18,9 @@ const fs      = require('fs');
 const path    = require('path');
 const mammoth = require('mammoth');
 const BOT_DIR = path.join(__dirname, '..');
-const PROJECT_ROOT = path.join(BOT_DIR, '..');
+const DATA_ROOT = process.env.VANBAN_DATA_ROOT
+  ? path.resolve(process.env.VANBAN_DATA_ROOT)
+  : path.join(BOT_DIR, '..');
 
 // ✅ Dùng module đọc PDF dùng chung
 const { readPDF } = require('./pdf-reader');
@@ -26,11 +28,12 @@ const { readPDF } = require('./pdf-reader');
 // ==================== CONFIG ====================
 
 const CONFIG = {
-  vanBanDenPath: path.join(PROJECT_ROOT, 'van-ban-den'),
-  logPath      : path.join(PROJECT_ROOT, 'logs', 'processed-files.json'),
-  manualPath   : path.join(PROJECT_ROOT, 'logs', 'need-manual.json'),
+  vanBanDenPath: path.join(DATA_ROOT, 'van-ban-den'),
+  logPath      : path.join(DATA_ROOT, 'logs', 'processed-files.json'),
+  manualPath   : path.join(DATA_ROOT, 'logs', 'need-manual.json'),
   dryRun       : process.argv.includes('--dry-run'),
   force        : process.argv.includes('--force'),
+  compactOnly  : process.argv.includes('--compact-only'),
 };
 
 // ==================== PATTERNS ====================
@@ -90,13 +93,56 @@ function sanitize(str) {
   return str.replace(/[<>:"/\\|?*]/g, '-').replace(/\s+/g, '_').replace(/_+/g, '_').trim();
 }
 
-function shorten(text, maxWords = 20) {
+function shorten(text, maxWords = 10, maxChars = 80) {
   const words = text
     .replace(/[.,;:!?()]/g, ' ')
     .split(/\s+/)
     .filter(w => w.length > 0);
-  const finalWords = words.length <= 15 ? words : words.slice(0, maxWords);
-  return removeVietnameseTones(finalWords.join('_').toLowerCase());
+  const finalWords = words.slice(0, maxWords);
+  let compact = removeVietnameseTones(finalWords.join('_').toLowerCase());
+  if (compact.length > maxChars) compact = compact.substring(0, maxChars);
+  return compact.replace(/_+/g, '_').replace(/^_|_$/g, '');
+}
+
+function compactSoHieu(soHieu) {
+  let s = sanitize((soHieu || '').replace(/\//g, '-').toUpperCase());
+  s = s.replace(/^(VB-)+/, 'VB-');
+  if (s.length > 35) s = s.substring(0, 35);
+  return s || 'VB-KHONGSO';
+}
+
+function compactTrichYeu(text) {
+  const base = removeVietnameseTones(String(text || ''))
+    .replace(/[_\-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
+
+  const stopWords = new Set(['vb', 'signed']);
+  const words = base
+    .split(' ')
+    .filter(w => w.length > 1 && !stopWords.has(w));
+
+  return sanitize(shorten(words.join(' '), 10, 75) || 'van_ban');
+}
+
+function parseFormattedFileName(fileName) {
+  const ext = path.extname(fileName);
+  const base = path.basename(fileName, ext);
+  const match = base.match(/^(.*)_(\d{2}_\d{2}_20\d{2})$/);
+  if (!match) return null;
+
+  const left = match[1];
+  const ngayBanHanh = match[2];
+  const firstSep = left.indexOf('_');
+  if (firstSep === -1) return null;
+
+  return {
+    soHieu: left.substring(0, firstSep),
+    trichYeu: left.substring(firstSep + 1),
+    ngayBanHanh,
+    ext,
+  };
 }
 
 // ==================== STEP 1: CHECK ====================
@@ -110,7 +156,7 @@ function shouldSkip(fileName, processed) {
     console.log(`⏭️  Đã xử lý: ${fileName}`);
     return true;
   }
-  if (!CONFIG.force && isAlreadyFormatted(fileName)) {
+  if (!CONFIG.force && !CONFIG.compactOnly && isAlreadyFormatted(fileName)) {
     console.log(`⏭️  Đã chuẩn: ${fileName}`);
     processed[fileName] = { formatted: true, skippedAt: new Date().toISOString() };
     return true;
@@ -203,33 +249,132 @@ function extractTrichYeu(text) {
 }
 
 function extractNgay(text) {
-  // Ưu tiên tìm trong 800 ký tự đầu (tránh bắt nhầm ngày trong nội dung)
-  const headerText = text.substring(0, 800);
+  // Chỉ tìm ngày ở phần đầu thể thức văn bản, cắt trước các marker nội dung.
+  const rawHeader = text.substring(0, 2200);
+  const markerPatterns = [/\n\s*Kính\s*gửi\s*:/i, /\n\s*Căn\s*cứ/i, /\n\s*QUYẾT\s+ĐỊNH/i, /\n\s*Điều\s+1/i, /\n\s*Nơi\s*nhận\s*:/i];
+  let cutPos = rawHeader.length;
+  for (const pattern of markerPatterns) {
+    const idx = rawHeader.search(pattern);
+    if (idx !== -1 && idx < cutPos) cutPos = idx;
+  }
+  const headerText = rawHeader.substring(0, cutPos);
 
-  for (const pattern of PATTERNS.ngayThang) {
-    const matches = [...headerText.matchAll(pattern)];
-    for (const match of matches) {
-      const [, day, month, year] = match;
-      const y = parseInt(year);
-      if (y >= 2020 && y <= 2035) {
-        return `${String(day).padStart(2, '0')}_${String(month).padStart(2, '0')}_${year}`;
-      }
+  // 1) Mẫu chuẩn: "..., ngày 10 tháng 6 năm 2026"
+  let match = headerText.match(/(?:^|[\n\r])[^\n\r,]{0,60},?\s*ngày\s*(\d{1,2})\s*tháng\s*(\d{1,2})\s*năm\s*(20\d{2})/i);
+  if (match) {
+    const [, d, m, y] = match;
+    const day = parseInt(d, 10);
+    const month = parseInt(m, 10);
+    if (day >= 1 && day <= 31 && month >= 1 && month <= 12) {
+      return `${String(day).padStart(2, '0')}_${String(month).padStart(2, '0')}_${y}`;
     }
   }
 
-  // Fallback: tìm toàn văn bản
-  for (const pattern of PATTERNS.ngayThang) {
-    const matches = [...text.matchAll(pattern)];
-    for (const match of matches) {
-      const [, day, month, year] = match;
-      const y = parseInt(year);
-      if (y >= 2020 && y <= 2035) {
-        return `${String(day).padStart(2, '0')}_${String(month).padStart(2, '0')}_${year}`;
-      }
+  // 2) Mẫu số: "..., ngày 10/06/2026" hoặc "ngày 10-06-2026"
+  match = headerText.match(/(?:^|[\n\r])[^\n\r,]{0,60},?\s*ngày\s*(\d{1,2})\s*[\/\.\-]\s*(\d{1,2})\s*[\/\.\-]\s*(20\d{2})/i);
+  if (match) {
+    const [, d, m, y] = match;
+    const day = parseInt(d, 10);
+    const month = parseInt(m, 10);
+    if (day >= 1 && day <= 31 && month >= 1 && month <= 12) {
+      return `${String(day).padStart(2, '0')}_${String(month).padStart(2, '0')}_${y}`;
+    }
+  }
+
+  // 3) Mẫu thiếu ngày: "..., ngày      tháng 6 năm 2026" -> mặc định ngày 01
+  match = headerText.match(/(?:^|[\n\r])[^\n\r,]{0,60},?\s*ngày\s*tháng\s*(\d{1,2})\s*năm\s*(20\d{2})/i);
+  if (match) {
+    const [, m, y] = match;
+    const month = parseInt(m, 10);
+    if (month >= 1 && month <= 12) {
+      return `01_${String(month).padStart(2, '0')}_${y}`;
     }
   }
 
   return null;
+}
+
+function extractSoHieuFromFileName(fileName) {
+  const base = path.basename(fileName, path.extname(fileName));
+  const normalized = removeVietnameseTones(base)
+    .replace(/signed/gi, '')
+    .replace(/\(\d+\)/g, '')
+    .replace(/_+/g, '_')
+    .trim();
+
+  // Pattern ưu tiên: 2637-BGDDT-VP, 589-SGDDT-GDPT
+  let match = normalized.match(/^(\d{2,5})[-_ ]([A-Za-z0-9-]{2,})/);
+  if (match) {
+    const num = match[1];
+    const code = match[2].replace(/[^A-Za-z0-9-]/g, '').toUpperCase();
+    if (code.length >= 2) return `${num}-${code}`;
+  }
+
+  // Pattern fallback: 844_08062026_... => lấy 844-VB
+  match = normalized.match(/^(\d{2,5})[_-]/);
+  if (match) {
+    return `${match[1]}-VB`;
+  }
+
+  return null;
+}
+
+function extractNgayFromFileName(fileName) {
+  const base = path.basename(fileName, path.extname(fileName));
+
+  // ddmmyyyy trong tên file, ví dụ 08062026
+  let match = base.match(/(?:^|[_\-\s])(\d{2})(\d{2})(20\d{2})(?:[_\-\s]|$)/);
+  if (match) {
+    const [, dd, mm, yyyy] = match;
+    const day = parseInt(dd, 10);
+    const month = parseInt(mm, 10);
+    if (day >= 1 && day <= 31 && month >= 1 && month <= 12) {
+      return `${dd}_${mm}_${yyyy}`;
+    }
+  }
+
+  // dd_mm_yyyy hoặc dd-mm-yyyy trong tên file
+  match = base.match(/(?:^|[_\-\s])(\d{1,2})[_\-](\d{1,2})[_\-](20\d{2})(?:[_\-\s]|$)/);
+  if (match) {
+    const [, d, m, y] = match;
+    const day = parseInt(d, 10);
+    const month = parseInt(m, 10);
+    if (day >= 1 && day <= 31 && month >= 1 && month <= 12) {
+      return `${String(day).padStart(2, '0')}_${String(month).padStart(2, '0')}_${y}`;
+    }
+  }
+
+  return null;
+}
+
+function buildGenericSoHieu(fileName) {
+  const base = path.basename(fileName, path.extname(fileName));
+  const normalized = removeVietnameseTones(base)
+    .replace(/\(\d+\)/g, '')
+    .replace(/signed/gi, '')
+    .replace(/[^a-zA-Z0-9]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+    .toUpperCase();
+
+  const code = normalized || 'KHONGSO';
+  if (code.startsWith('VB-')) {
+    return code.substring(0, 35);
+  }
+  return `VB-${code.substring(0, 32)}`;
+}
+
+function extractNgayFromFileStats(filePath) {
+  try {
+    const stats = fs.statSync(filePath);
+    const d = stats.mtime;
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const yyyy = String(d.getFullYear());
+    return `${dd}_${mm}_${yyyy}`;
+  } catch {
+    return null;
+  }
 }
 
 function extractStep(text) {
@@ -252,9 +397,17 @@ function validateStep(info) {
 // ==================== STEP 5: BUILD NAME ====================
 
 function buildNameStep(info, ext) {
-  const cleanSoHieu   = sanitize(info.soHieu.replace(/\//g, '-'));
-  const shortTrichYeu = info.trichYeu ? sanitize(shorten(info.trichYeu)) : 'van_ban';
-  return `${cleanSoHieu}_${shortTrichYeu}_${info.ngayBanHanh}${ext}`;
+  const cleanSoHieu = compactSoHieu(info.soHieu);
+  let shortTrichYeu = info.trichYeu ? compactTrichYeu(info.trichYeu) : 'van_ban';
+
+  // Giới hạn độ dài tên file để dễ nhìn/dễ thao tác trên Windows.
+  let fileName = `${cleanSoHieu}_${shortTrichYeu}_${info.ngayBanHanh}${ext}`;
+  if (fileName.length > 150) {
+    const overflow = fileName.length - 150;
+    shortTrichYeu = shortTrichYeu.substring(0, Math.max(12, shortTrichYeu.length - overflow));
+    fileName = `${cleanSoHieu}_${shortTrichYeu}_${info.ngayBanHanh}${ext}`;
+  }
+  return fileName;
 }
 
 // ==================== MAIN PIPELINE ====================
@@ -294,9 +447,72 @@ async function processFile(filePath, processed, manual, pdfInfoCache = {}) {
 
   console.log(`\n📄 ${fileName}`);
 
+  if (CONFIG.compactOnly) {
+    const parsed = parseFormattedFileName(fileName);
+    if (!parsed) {
+      console.log('   ⏭️  Bỏ qua (chưa đúng format cũ để compact an toàn)');
+      return null;
+    }
+
+    const info = {
+      soHieu: parsed.soHieu,
+      trichYeu: parsed.trichYeu,
+      ngayBanHanh: parsed.ngayBanHanh,
+    };
+
+    const newName = buildNameStep(info, ext);
+    if (newName === fileName) {
+      console.log('   ⏭️  Đã gọn rồi');
+      return null;
+    }
+
+    const newPath = path.join(CONFIG.vanBanDenPath, newName);
+    if (fs.existsSync(newPath)) {
+      console.log('   ⚠️  Tên gọn đã tồn tại, bỏ qua');
+      return null;
+    }
+
+    console.log(`   ✅ ${newName}`);
+    return { oldPath: filePath, newPath, fileName, newName, info };
+  }
+
   try {
     const text       = await readFileStep(filePath, ext);
     let info       = extractStep(text);
+
+    if (!info.soHieu) {
+      const fallbackSoHieu = extractSoHieuFromFileName(fileName);
+      if (fallbackSoHieu) {
+        info.soHieu = fallbackSoHieu;
+        console.log(`   ↪ So hieu fallback tu ten file: ${info.soHieu}`);
+      }
+    }
+
+    if (!info.soHieu) {
+      info.soHieu = buildGenericSoHieu(fileName);
+      console.log(`   ↪ So hieu fallback tong quat: ${info.soHieu}`);
+    }
+
+    if (!info.ngayBanHanh) {
+      const fallbackNgay = extractNgayFromFileName(fileName);
+      if (fallbackNgay) {
+        info.ngayBanHanh = fallbackNgay;
+        console.log(`   ↪ Ngay BH fallback tu ten file: ${info.ngayBanHanh}`);
+      }
+    }
+
+    if (!info.ngayBanHanh) {
+      const fallbackNgayStats = extractNgayFromFileStats(filePath);
+      if (fallbackNgayStats) {
+        info.ngayBanHanh = fallbackNgayStats;
+        console.log(`   ↪ Ngay BH fallback tu file mtime: ${info.ngayBanHanh}`);
+      }
+    }
+
+    if (!info.trichYeu) {
+      const base = path.basename(fileName, ext);
+      info.trichYeu = base.replace(/[_\-]+/g, ' ').replace(/\s+/g, ' ').trim();
+    }
 
     // Nếu là DOCX và số hiệu không có số ở đầu (dạng SGDĐT-TCCB thay vì 123/SGDĐT-TCCB), thử lấy từ file PDF tương ứng
     if (ext.toLowerCase() === '.docx' && info.soHieu && !/^\d+\/[A-ZĐ0-9\-]+$/i.test(info.soHieu)) {

@@ -2,13 +2,16 @@ const fs = require('fs');
 const path = require('path');
 const { chromium } = require('playwright');
 const BOT_DIR = path.join(__dirname, '..');
+const DATA_ROOT = process.env.VANBAN_DATA_ROOT
+  ? path.resolve(process.env.VANBAN_DATA_ROOT)
+  : path.join(BOT_DIR, '..');
 
 require('dotenv').config({ path: path.join(BOT_DIR, '.env') });
 const { notifyNewVanBan } = require('../integrations/telegram-notify');
 
 const USERNAME = process.env.VPDT_USERNAME;
 const PASSWORD = process.env.VPDT_PASSWORD;
-const STATE_FILE = path.join(BOT_DIR, 'state', 'known-vanban.json');
+const STATE_FILE = path.join(DATA_ROOT, 'state', 'known-vanban.json');
 
 function ensureStateFile() {
   const stateDir = path.dirname(STATE_FILE);
@@ -96,6 +99,31 @@ async function loginVpdt(page) {
   await page.waitForURL(/vpdt\.dongthap\.gov\.vn/, { timeout: 30000 });
   await page.waitForLoadState('networkidle', { timeout: 20000 });
   await page.waitForTimeout(3000);
+}
+
+async function goToVanBanChoDuyet(page) {
+  const targets = [
+    'https://vpdt.dongthap.gov.vn/vi/document-process/list/2',
+    'https://vpdt.dongthap.gov.vn/vi/document-process/list/2/5f714e1bfa1d20b3c61f429b?status=2&page=0&size=10'
+  ];
+
+  for (const url of targets) {
+    try {
+      await page.goto(url, { timeout: 60000, waitUntil: 'domcontentloaded' });
+      await page.waitForLoadState('networkidle', { timeout: 20000 });
+      await page.waitForTimeout(2500);
+
+      const rowCount = await page.evaluate(() => {
+        return document.querySelectorAll('.mat-mdc-row, .mat-row, [role="row"], table tr').length;
+      });
+
+      if (rowCount > 0) {
+        return;
+      }
+    } catch (_) {
+      // Try next candidate URL.
+    }
+  }
 }
 
 async function extractVanBan(page) {
@@ -191,6 +219,9 @@ async function run() {
   try {
     console.log('Dang dang nhap vpdt.dongthap.gov.vn ...');
     await loginVpdt(page);
+
+    console.log('Dang mo tab Cho duyet ...');
+    await goToVanBanChoDuyet(page);
 
     console.log('Dang quet danh sach van ban den ...');
     const allVanBan = await extractVanBan(page);

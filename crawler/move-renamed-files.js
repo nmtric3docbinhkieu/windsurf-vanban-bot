@@ -7,12 +7,14 @@
 const fs = require('fs');
 const path = require('path');
 const BOT_DIR = path.join(__dirname, '..');
-const PROJECT_ROOT = path.join(BOT_DIR, '..');
+const DATA_ROOT = process.env.VANBAN_DATA_ROOT
+  ? path.resolve(process.env.VANBAN_DATA_ROOT)
+  : path.join(BOT_DIR, '..');
 
 const CONFIG = {
-  vanBanDenPath: path.join(PROJECT_ROOT, 'van-ban-den'),
-  targetPath: path.join(PROJECT_ROOT, 'van-ban-den-da-doi-ten'),
-  logPath: path.join(PROJECT_ROOT, 'logs', 'processed-files.json'),
+  vanBanDenPath: path.join(DATA_ROOT, 'van-ban-den'),
+  targetPath: path.join(DATA_ROOT, 'van-ban-den-da-doi-ten'),
+  logPath: path.join(DATA_ROOT, 'logs', 'processed-files.json'),
 };
 
 // Kiểm tra file đã đúng format
