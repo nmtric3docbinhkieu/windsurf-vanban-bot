@@ -14,9 +14,9 @@ python --version
 Nếu chưa có Python, tải tại: https://www.python.org/downloads/ (phiên bản 3.9 trở lên)
 
 ### Bước 2: Cài đặt thư viện
-Vào thư mục `windsurf-vanban-bot` và chạy:
+Vào thư mục dự án hiện tại và chạy:
 ```bash
-cd "d:\OneDrive 2\OneDrive - moet.edu.vn\DuAn_VanBan_TruongDBK\windsurf-vanban-bot"
+cd "d:\VIET-PHAN-MEM\VANBAN-BOT"
 pip install -r requirements.txt
 ```
 
@@ -45,13 +45,13 @@ DuAn_VanBan_TruongDBK/
 
 ### Cách 1: Xử lý 1 file cụ thể
 ```bash
-cd "d:\OneDrive 2\OneDrive - moet.edu.vn\DuAn_VanBan_TruongDBK\windsurf-vanban-bot"
-python soan_van_ban_di.py "../van-ban-den-xu-ly/ten-file.docx"
+cd "d:\VIET-PHAN-MEM\VANBAN-BOT"
+python soan_van_ban_di.py "./van-ban-den-xu-ly/ten-file.docx"
 ```
 
 ### Cách 2: Xử lý toàn bộ thư mục
 ```bash
-cd "d:\OneDrive 2\OneDrive - moet.edu.vn\DuAn_VanBan_TruongDBK\windsurf-vanban-bot"
+cd "d:\VIET-PHAN-MEM\VANBAN-BOT"
 python soan_van_ban_di.py
 ```
 

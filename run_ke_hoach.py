@@ -6,9 +6,9 @@ from pathlib import Path
 
 bot_dir = Path(__file__).resolve().parent
 
-# Tạo thư mục van-ban-di nếu chưa có
-output_dir = Path(r"d:\OneDrive 2\OneDrive - moet.edu.vn\DuAn_VanBan_TruongDBK\van-ban-di")
-output_dir.mkdir(exist_ok=True)
+# Tạo thư mục van-ban-di ở đúng thư mục dự án hiện tại, không ghi ra OneDrive cũ
+output_dir = bot_dir / "van-ban-di"
+output_dir.mkdir(parents=True, exist_ok=True)
 
 # Chuẩn hóa văn bản (số hiệu và ngày tháng sẽ tự động lấy từ code)
 tao_van_ban_chuan(

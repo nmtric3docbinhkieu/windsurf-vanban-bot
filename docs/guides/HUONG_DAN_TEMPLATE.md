@@ -11,7 +11,7 @@ Thay vì tạo file DOCX từ đầu bằng code (cách khó, dễ lỗi), chún
 ## Cài đặt
 
 ```bash
-cd "d:\OneDrive 2\OneDrive - moet.edu.vn\DuAn_VanBan_TruongDBK\windsurf-vanban-bot"
+cd "d:\VIET-PHAN-MEM\VANBAN-BOT"
 python -m pip install docxtpl
 ```
 
