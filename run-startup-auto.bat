@@ -1,5 +1,5 @@
 @echo off
-setlocal EnableExtensions
+setlocal EnableExtensions EnableDelayedExpansion
 chcp 65001 >nul
 
 set "SCRIPT_DIR=%~dp0"
@@ -9,9 +9,18 @@ set "LOCK_FILE=%LOG_DIR%\startup-auto.lock"
 
 if not exist "%LOG_DIR%" mkdir "%LOG_DIR%"
 
+REM Lock cu qua 15 phut duoc coi la treo (tien trinh truoc bi crash) nen tu xoa
 if exist "%LOCK_FILE%" (
-    echo [%DATE% %TIME%] Da co tien trinh startup dang chay. Bo qua lan nay.>> "%LOG_FILE%"
-    exit /b 0
+    set "LOCK_STALE=0"
+    for /f %%S in ('powershell -NoProfile -Command "if ((Get-Item -LiteralPath '%LOCK_FILE%').LastWriteTime -lt (Get-Date).AddMinutes(-15)) { Write-Output 1 } else { Write-Output 0 }"') do set "LOCK_STALE=%%S"
+
+    if "!LOCK_STALE!"=="1" (
+        echo [%DATE% %TIME%] Lock cu bi treo qua 15 phut, tu dong xoa va chay lai.>> "%LOG_FILE%"
+        del "%LOCK_FILE%" >nul 2>&1
+    ) else (
+        echo [%DATE% %TIME%] Da co tien trinh startup dang chay. Bo qua lan nay.>> "%LOG_FILE%"
+        exit /b 0
+    )
 )
 
 echo running > "%LOCK_FILE%"
