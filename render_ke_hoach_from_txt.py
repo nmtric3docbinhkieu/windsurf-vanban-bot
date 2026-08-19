@@ -14,6 +14,17 @@ def _default_ngay_thang() -> str:
     return f"ngày {now.day} tháng {now.month} năm {now.year}"
 
 
+def _infer_trich_yeu(raw_text: str) -> str:
+    for line in raw_text.splitlines():
+        normalized = " ".join(line.strip().split())
+        if "xây dựng Kế hoạch" in normalized:
+            title = normalized.split("xây dựng Kế hoạch", 1)[1]
+            title = title.split(", cụ thể như sau", 1)[0].strip(" :,-")
+            if title:
+                return title[0].upper() + title[1:]
+    return "Triển khai kế hoạch của nhà trường"
+
+
 def main() -> None:
     root_dir = Path(__file__).resolve().parent.parent
     bot_dir = Path(__file__).resolve().parent
@@ -46,11 +57,7 @@ def main() -> None:
         default="/KH-THPTĐBK",
         help="Số ký hiệu văn bản",
     )
-    parser.add_argument(
-        "--trich-yeu",
-        required=True,
-        help="Trích yếu nội dung kế hoạch",
-    )
+    parser.add_argument("--trich-yeu", default=None, help="Trích yếu; mặc định tự lấy từ nội dung")
     parser.add_argument(
         "--noi-nhan",
         default="Sở GDĐT Đồng Tháp (báo cáo); Lưu: VT",
@@ -91,7 +98,7 @@ def main() -> None:
         "loai_van_ban": "KẾ HOẠCH",
         "so_ky_hieu": args.so_ky_hieu,
         "ngay_thang": _default_ngay_thang(),
-        "trich_yeu": args.trich_yeu,
+        "trich_yeu": args.trich_yeu or _infer_trich_yeu(raw_text),
         "noi_nhan": args.noi_nhan,
         "nguoi_ky": args.nguoi_ky,
         "chuc_vu_ky": args.chuc_vu_ky,

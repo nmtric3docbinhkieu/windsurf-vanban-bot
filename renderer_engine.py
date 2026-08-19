@@ -140,6 +140,8 @@ def parse_content_to_blocks(content: str) -> List[Dict]:
     """
     lines = content.split('\n')
     blocks = []
+    section_number = 0
+    subsection_number = 0
     
     for line in lines:
         line = line.strip()
@@ -148,6 +150,8 @@ def parse_content_to_blocks(content: str) -> List[Dict]:
         
         # Heading level 1: I, II, III, IV, V...
         if re.match(r'^[IVXLCDM]+\.', line):
+            section_number += 1
+            subsection_number = 0
             blocks.append({
                 'type': 'heading1',
                 'text': line,
@@ -171,6 +175,8 @@ def parse_content_to_blocks(content: str) -> List[Dict]:
                     'indent': True
                 }
             })
+            if block_type == 'heading2':
+                subsection_number = max(subsection_number, int(re.match(r'^\d+', line).group()))
         # Heading level 3: a, b, c...
         elif re.match(r'^[a-z]+\.', line):
             blocks.append({
@@ -193,6 +199,23 @@ def parse_content_to_blocks(content: str) -> List[Dict]:
             })
         # Normal paragraph
         else:
+            is_possible_heading = (
+                len(line) <= 150
+                and not re.search(r'[.!?;:]$', line)
+                and not line.lower().startswith(('căn cứ ', 'trường ', 'các ', 'việc '))
+            )
+            if is_possible_heading and blocks and blocks[-1]['type'] in {'heading1', 'paragraph'}:
+                subsection_number += 1
+                blocks.append({
+                    'type': 'heading2',
+                    'text': f'{subsection_number}. {line}',
+                    'meta': {
+                        'numbering': True,
+                        'indent': True,
+                        'inferred_numbering': True,
+                    }
+                })
+                continue
             blocks.append({
                 'type': 'paragraph',
                 'text': line,
@@ -420,7 +443,15 @@ def _format_noi_nhan_table(doc: Document, noi_nhan_text: str, style_config: Opti
     run_header.font.bold = True
     run_header.font.italic = True
 
-    lines = [ln.strip() for ln in (noi_nhan_text or '').splitlines() if ln.strip()]
+    raw_lines = re.split(r'[;\n]+', noi_nhan_text or '')
+    lines = []
+    for raw_line in raw_lines:
+        line = raw_line.strip().lstrip('-').strip()
+        if not line:
+            continue
+        if not line.endswith('.'):
+            line += '.'
+        lines.append(f'- {line}')
     for line in lines:
         p = left_cell.add_paragraph()
         p.alignment = WD_ALIGN_PARAGRAPH.LEFT

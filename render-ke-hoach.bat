@@ -9,6 +9,8 @@ echo.
 
 set "INPUT_TXT=noi_dung_ke_hoach.txt"
 if not "%~1"=="" set "INPUT_TXT=%~1"
+set "FILE_TAG=manual-ai"
+if not "%~1"=="" set "FILE_TAG=%~n1"
 
 if not exist "%INPUT_TXT%" (
     echo [LOI] Khong tim thay file: %INPUT_TXT%
@@ -20,26 +22,20 @@ if not exist "%INPUT_TXT%" (
 echo File noi dung: %INPUT_TXT%
 echo.
 
-set "TRICH_YEU="
-set /p TRICH_YEU=Nhap TRICH YEU cua ke hoach:
-if "%TRICH_YEU%"=="" (
-    echo [LOI] Trich yeu khong duoc de trong.
-    pause
-    exit /b 1
-)
-
 set "SO_KY_HIEU=/KH-THPTĐBK"
-set /p SO_KY_HIEU=Nhap SO KY HIEU (Enter de dung mac dinh %SO_KY_HIEU%):
-
 set "NOI_NHAN=Sở GDĐT Đồng Tháp (báo cáo); Lưu: VT"
-set /p NOI_NHAN=Nhap NOI NHAN, cach nhau bang ";" (Enter de dung mac dinh):
-
 set "NGUOI_KY=Nguyễn Minh Trí"
-set /p NGUOI_KY=Nhap NGUOI KY (Enter de dung mac dinh %NGUOI_KY%):
+set "TRICH_YEU=%FILE_TAG%"
+
+echo Thong tin tu dong:
+echo - Trich yeu: %TRICH_YEU%
+echo - So ky hieu: %SO_KY_HIEU%
+echo - Noi nhan: %NOI_NHAN%
+echo - Nguoi ky: %NGUOI_KY%
 
 echo.
 echo [DANG RENDER...]
-python render_ke_hoach_from_txt.py --input-txt "%INPUT_TXT%" --trich-yeu "%TRICH_YEU%" --so-ky-hieu "%SO_KY_HIEU%" --noi-nhan "%NOI_NHAN%" --nguoi-ky "%NGUOI_KY%"
+python render_ke_hoach_from_txt.py --input-txt "%INPUT_TXT%" --file-tag "%FILE_TAG%" --trich-yeu "%TRICH_YEU%" --so-ky-hieu "%SO_KY_HIEU%" --noi-nhan "%NOI_NHAN%" --nguoi-ky "%NGUOI_KY%"
 
 if errorlevel 1 (
     echo.
