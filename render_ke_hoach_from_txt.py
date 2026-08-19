@@ -2,6 +2,7 @@
 """Render KẾ HOẠCH từ file TXT nội dung AI (manual workflow qua trình duyệt)."""
 
 import argparse
+import re
 from datetime import datetime
 from pathlib import Path
 
@@ -23,6 +24,15 @@ def _infer_trich_yeu(raw_text: str) -> str:
             if title:
                 return title[0].upper() + title[1:]
     return "Triển khai kế hoạch của nhà trường"
+
+
+def _safe_file_tag(text: str) -> str:
+    text = re.sub(r"[^\w\s-]", "", text, flags=re.UNICODE)
+    text = re.sub(r"\s+", "_", text.strip())
+    text = text[:100].rstrip("_")
+    if "_" in text and len(text) == 100:
+        text = text.rsplit("_", 1)[0]
+    return text or "ke_hoach"
 
 
 def main() -> None:
@@ -60,7 +70,12 @@ def main() -> None:
     parser.add_argument("--trich-yeu", default=None, help="Trích yếu; mặc định tự lấy từ nội dung")
     parser.add_argument(
         "--noi-nhan",
-        default="Sở GDĐT Đồng Tháp (báo cáo); Lưu: VT",
+        default=(
+            "Sở GDĐT Đồng Tháp (báo cáo); "
+            "Hiệu trưởng, các Phó Hiệu trưởng; "
+            "Các tổ chuyên môn, tổ văn phòng; "
+            "Đoàn TNCSHCM; Lưu: VT"
+        ),
         help="Nơi nhận dạng chuỗi ;",
     )
     parser.add_argument(
@@ -91,14 +106,18 @@ def main() -> None:
     blocks = parse_content_to_blocks(content_clean)
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    safe_tag = "".join(ch for ch in args.file_tag if ch.isalnum() or ch in ("-", "_")) or "manual-ai"
-    output_path = output_dir / f"VBDi_{safe_tag}_ke_hoach_{timestamp}.docx"
+    trich_yeu = args.trich_yeu or _infer_trich_yeu(raw_text)
+    if args.file_tag in {"manual-ai", "clipboard-ai"}:
+        safe_tag = _safe_file_tag(trich_yeu)
+    else:
+        safe_tag = "".join(ch for ch in args.file_tag if ch.isalnum() or ch in ("-", "_")) or "manual-ai"
+    output_path = output_dir / f"KH_{safe_tag}_ke_hoach_{timestamp}.docx"
 
     metadata = {
         "loai_van_ban": "KẾ HOẠCH",
         "so_ky_hieu": args.so_ky_hieu,
         "ngay_thang": _default_ngay_thang(),
-        "trich_yeu": args.trich_yeu or _infer_trich_yeu(raw_text),
+        "trich_yeu": trich_yeu,
         "noi_nhan": args.noi_nhan,
         "nguoi_ky": args.nguoi_ky,
         "chuc_vu_ky": args.chuc_vu_ky,

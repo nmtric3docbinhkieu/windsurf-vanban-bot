@@ -389,7 +389,15 @@ def clean_content(content: str) -> str:
         line = line.strip()
         
         # Tìm dấu hiệu footer
-        if "Nơi nhận:" in line or re.match(r"^[^,]+,\s*ngày\s+\d+\s+tháng\s+\d+\s+năm\s+\d+", line, re.IGNORECASE):
+        is_footer_date = (
+            not line.lower().startswith("căn cứ")
+            and re.match(
+                r"^[^,]+,\s*ngày\s+\d+\s+tháng\s+\d+\s+năm\s+\d+",
+                line,
+                re.IGNORECASE,
+            )
+        )
+        if "Nơi nhận:" in line or is_footer_date:
             break
         
         # Loại bỏ "./." ở cuối
@@ -445,12 +453,12 @@ def _format_noi_nhan_table(doc: Document, noi_nhan_text: str, style_config: Opti
 
     raw_lines = re.split(r'[;\n]+', noi_nhan_text or '')
     lines = []
-    for raw_line in raw_lines:
+    for line_index, raw_line in enumerate(raw_lines):
         line = raw_line.strip().lstrip('-').strip()
         if not line:
             continue
-        if not line.endswith('.'):
-            line += '.'
+        is_last_line = line_index == len(raw_lines) - 1
+        line = line.rstrip('.;') + ('.' if is_last_line else ';')
         lines.append(f'- {line}')
     for line in lines:
         p = left_cell.add_paragraph()
