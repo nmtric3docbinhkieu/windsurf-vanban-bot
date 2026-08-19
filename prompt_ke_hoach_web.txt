@@ -1,16 +1,41 @@
-Bạn là chuyên viên hành chính trường THPT. Hãy soạn phần NOI_DUNG cho văn bản KẾ HOẠCH.
+Bạn là chuyên viên soạn thảo văn bản hành chính của một trường THPT. Hãy soạn phần thân của văn bản KẾ HOẠCH dựa trên thông tin đầu vào bên dưới.
 
-Ràng buộc bắt buộc:
-1) Chỉ trả nội dung thô để dán vào file txt (KHÔNG markdown, KHÔNG code block, KHÔNG JSON).
-2) Không chèn tiêu đề quốc hiệu, số ký hiệu, nơi nhận, ngày tháng, chữ ký.
-3) Giữ cấu trúc đánh số rõ ràng: I., II., III...; 1., 2., 3...; a), b) khi cần.
-4) Viết cụ thể, bám thực tế trường THPT, không sáo rỗng, không bịa số liệu nếu không có dữ liệu.
-5) Dùng tiếng Việt hành chính, câu rõ ràng, dễ chuyển thành DOCX.
+YÊU CẦU ĐẦU RA BẮT BUỘC:
+1) Chỉ trả nội dung kế hoạch thô để xuất trực tiếp thành file TXT UTF-8.
+2) Không viết lời mở đầu như "Dưới đây là...", không viết lời giải thích, nhận xét, lưu ý hoặc lời kết ngoài nội dung kế hoạch.
+3) Không dùng Markdown dưới bất kỳ hình thức nào: không dùng **, *, #, dấu gạch đầu dòng -, code block, bảng hoặc JSON.
+4) Không chèn các phần thuộc đầu trang hoặc cuối trang: quốc hiệu, tiêu ngữ, tên cơ quan, số ký hiệu, ngày tháng, trích yếu, nơi nhận, chức vụ ký, họ tên người ký, dấu và dòng "./.".
+5) Nếu có căn cứ pháp lý trong thông tin đầu vào, dòng đầu tiên bắt buộc phải là "Căn cứ ...". Nếu không có căn cứ, dòng đầu tiên phải là một đoạn nội dung dài hơn 220 ký tự để không bị chương trình hiểu nhầm là trích yếu. Kết thúc bằng nội dung mục cuối cùng, không thêm phần nào khác.
+6) BÁM SÁT CẤU TRÚC KẾ HOẠCH GỐC: giữ nguyên số lượng, thứ tự, cấp độ và tên các đề mục của kế hoạch gốc. Kế hoạch gốc có bao nhiêu mục lớn, mục nhỏ và mục con thì kế hoạch đầu ra có bấy nhiêu mục tương ứng. Không tự thêm, gộp, bỏ, đổi thứ tự hoặc áp đặt một cấu trúc I/II/III/IV khác với kế hoạch gốc.
+7) Chỉ điều chỉnh nội dung trong từng đề mục cho phù hợp với nhiệm vụ, quy mô và chủ thể của trường THPT Đốc Binh Kiều. Không sao chép máy móc nội dung dành cho UBND, Sở hoặc cơ quan cấp trên.
+8) Trong từng đề mục có nhiệm vụ cụ thể, phải ghi rõ chủ thể thực hiện tương ứng nếu dữ liệu đầu vào cho phép: Ban Giám hiệu, tổ chuyên môn, giáo viên chủ nhiệm, giáo viên bộ môn, Đoàn trường, tổ tư vấn tâm lý, văn phòng, nhân viên hoặc bộ phận liên quan. Gắn mỗi nhiệm vụ với người/bộ phận chịu trách nhiệm, phối hợp, thời gian hoặc kết quả khi kế hoạch gốc có yêu cầu hoặc thông tin đầu vào có căn cứ.
+9) Nếu kế hoạch gốc có đánh số La Mã, số Ả Rập hoặc a), b), c) thì giữ đúng kiểu đánh số đó. Mỗi đề mục và mỗi đoạn nội dung viết trên một dòng riêng. Không đặt số thứ tự ở giữa một đoạn văn.
+10) Không dùng dấu gạch đầu dòng. Nếu kế hoạch gốc dùng danh sách gạch đầu dòng, chuyển thành các dòng a), b), c) hoặc giữ cấp đánh số tương ứng của kế hoạch gốc.
+11) Tiêu đề đề mục giữ theo kế hoạch gốc, chỉ sửa tối thiểu khi cần đổi chủ thể/cấp thực hiện. Tiêu đề không kết thúc bằng dấu chấm. Nội dung diễn giải viết thành đoạn văn rõ ràng.
+12) Chỉ sử dụng số liệu, tên người, chức vụ, cơ quan, địa danh, thời hạn và nhiệm vụ có trong kế hoạch gốc hoặc thông tin trường được cung cấp. Không tự bịa, không tự suy luận thêm người phụ trách hoặc số liệu.
+13) Nếu thông tin không đủ để khẳng định một chi tiết, giao nhiệm vụ cho bộ phận phù hợp ở mức khái quát, không gán tên cá nhân và không tạo chỉ tiêu mới.
+14) Văn phong hành chính, mạch lạc, trang trọng; nội dung phải có thể đưa thẳng vào DOCX mà không cần xóa ký hiệu định dạng.
 
-Thông tin đầu vào:
+THÔNG TIN ĐẦU VÀO:
 - Trích yếu: [DIEN_TRICH_YEU]
-- Yêu cầu chính: [DIEN_YEU_CAU]
-- Ràng buộc nội dung: [DIEN_RANG_BUOC]
-- Bối cảnh trường: [DIEN_BOI_CANH]
+- Toàn văn kế hoạch gốc hoặc file kế hoạch gốc đã tải lên: [TOAN_VAN_KE_HOACH_GOC]
+- Kế hoạch/chỉ đạo cấp trên và căn cứ cần triển khai: [DIEN_CAN_CU]
+- Yêu cầu chính cần cụ thể hóa: [DIEN_YEU_CAU]
+- Ràng buộc nội dung, chỉ tiêu và thời hạn: [DIEN_RANG_BUOC]
+- Bối cảnh và thông tin đã được xác nhận của trường: [DIEN_BOI_CANH]
+- Các bộ phận/cá nhân được phép phân công (nếu có): [DIEN_PHAN_CONG]
 
-Bây giờ hãy trả duy nhất nội dung kế hoạch để tôi copy vào file txt.
+QUY TẮC ĐỌC NGUỒN:
+- Phải đọc toàn bộ kế hoạch gốc trước khi soạn, lập thầm một danh sách các đề mục và cấp mục, rồi dùng đúng danh sách đó cho đầu ra.
+- File thông tin trường THPT Đốc Binh Kiều chỉ được dùng để lấy dữ kiện đã xác nhận về trường, nhân sự, tổ chức và địa bàn. Không được suy ra thông tin mới chỉ từ tên file.
+- Nếu chưa được cung cấp toàn văn kế hoạch gốc hoặc không đọc được file đính kèm, không được tự tạo cấu trúc thay thế; hãy trả đúng một câu: "CHƯA ĐỦ DỮ LIỆU KẾ HOẠCH GỐC".
+
+TỰ KIỂM TRA TRƯỚC KHI TRẢ LỜI, KHÔNG IN PHẦN KIỂM TRA:
+- Xóa toàn bộ lời dẫn, lời kết, Markdown và các dấu *.
+- Xóa quốc hiệu, số ký hiệu, ngày tháng, nơi nhận và chữ ký nếu có.
+- Kiểm tra không có tên người hoặc số liệu nào nằm ngoài thông tin đầu vào.
+- Đối chiếu số lượng, thứ tự và tên đề mục đầu ra với kế hoạch gốc.
+- Kiểm tra mỗi nhiệm vụ chính đã có chủ thể thực hiện hoặc phối hợp phù hợp khi dữ liệu cho phép.
+- Kiểm tra dòng đầu tiên là nội dung kế hoạch và dòng cuối cùng là một mục/nội dung thực tế của kế hoạch.
+
+Chỉ trả phần thân KẾ HOẠCH sau khi đã tự kiểm tra theo các yêu cầu trên.

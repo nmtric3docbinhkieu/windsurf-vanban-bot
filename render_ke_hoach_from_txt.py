@@ -79,7 +79,7 @@ def main() -> None:
 
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    raw_text = input_txt.read_text(encoding="utf-8")
+    raw_text = input_txt.read_text(encoding="utf-8-sig")
     content_clean = clean_content(raw_text)
     blocks = parse_content_to_blocks(content_clean)
 
