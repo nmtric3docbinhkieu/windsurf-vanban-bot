@@ -10,9 +10,11 @@ set "LOCK_FILE=%LOG_DIR%\startup-auto.lock"
 if not exist "%LOG_DIR%" mkdir "%LOG_DIR%"
 
 REM Lock cu qua 15 phut duoc coi la treo (tien trinh truoc bi crash) nen tu xoa
+REM Mac dinh LOCK_STALE=1 (fail-safe): neu PowerShell loi/bi chan vi execution policy,
+REM van uu tien tu phuc hoi thay vi bo qua vinh vien (tung gay loi khong chay 12 ngay lien tuc).
 if exist "%LOCK_FILE%" (
-    set "LOCK_STALE=0"
-    for /f %%S in ('powershell -NoProfile -Command "if ((Get-Item -LiteralPath '%LOCK_FILE%').LastWriteTime -lt (Get-Date).AddMinutes(-15)) { Write-Output 1 } else { Write-Output 0 }"') do set "LOCK_STALE=%%S"
+    set "LOCK_STALE=1"
+    for /f %%S in ('powershell -NoProfile -ExecutionPolicy Bypass -Command "try { if ((Get-Item -LiteralPath '%LOCK_FILE%').LastWriteTime -lt (Get-Date).AddMinutes(-15)) { Write-Output 1 } else { Write-Output 0 } } catch { Write-Output 1 }" 2^>nul') do set "LOCK_STALE=%%S"
 
     if "!LOCK_STALE!"=="1" (
         echo [%DATE% %TIME%] Lock cu bi treo qua 15 phut, tu dong xoa va chay lai.>> "%LOG_FILE%"

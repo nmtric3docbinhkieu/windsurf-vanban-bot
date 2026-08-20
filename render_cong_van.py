@@ -5,6 +5,7 @@ Render công văn (memo) từ TEMPLATE_CV.docx.
 """
 
 import json
+import re
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -31,6 +32,14 @@ ROOT_DIR = Path(__file__).resolve().parent.parent
 DEFAULT_INPUT_JSON = Path(__file__).resolve().parent / "noi_dung_cong_van.json"
 DEFAULT_TEMPLATE = Path(__file__).resolve().parent / "TEMPLATE_CV.docx"
 DEFAULT_OUTPUT_DIR = ROOT_DIR / "van-ban-di"
+
+
+def _safe_file_tag(text):
+    text = re.sub(r"[^\w\s-]", "", text, flags=re.UNICODE)
+    text = re.sub(r"\s+", "_", text.strip())[:100].rstrip("_")
+    if "_" in text and len(text) == 100:
+        text = text.rsplit("_", 1)[0]
+    return text or "cong_van"
 
 
 def _clear_cell(cell):
@@ -105,7 +114,7 @@ def _render_kinh_gui_table(doc, recipients):
 
     for row_index, recipient in enumerate(recipients, start=1):
         _clear_cell(table.cell(row_index, 0))
-        _set_cell_lines(table.cell(row_index, 1), [recipient], default_size=14, align=WD_ALIGN_PARAGRAPH.JUSTIFY)
+        _set_cell_lines(table.cell(row_index, 1), [f"- {recipient}"], default_size=14, align=WD_ALIGN_PARAGRAPH.JUSTIFY)
 
     for row_index in range(len(recipients) + 1, len(table.rows)):
         _clear_cell(table.cell(row_index, 0))
@@ -317,10 +326,10 @@ def render_cong_van(noi_dung_path=DEFAULT_INPUT_JSON, output_dir=DEFAULT_OUTPUT_
     if timestamp is None:
         timestamp = datetime.now().strftime("%Y_%m_%d_%H%M%S")
 
-    so_ky_hieu = noi_dung.get("so_ky_hieu_goi_y", "").replace("/", "_").replace(" ", "").strip("_")
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
-    output_path = output_dir / f"VBDi_{so_ky_hieu}_CV_{timestamp}.docx"
+    safe_tag = _safe_file_tag(noi_dung.get("trich_yeu", ""))
+    output_path = output_dir / f"CV_{safe_tag}_cong_van_{timestamp}.docx"
 
     template_path = Path(DEFAULT_TEMPLATE)
     if not template_path.exists():
