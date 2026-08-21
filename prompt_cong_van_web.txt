@@ -8,16 +8,17 @@ KÍNH GỬI: Các tổ chuyên môn, tổ văn phòng; Giáo viên chủ nhiệm
 NƠI NHẬN: Sở GDĐT Đồng Tháp (báo cáo); Hiệu trưởng, các Phó Hiệu trưởng; Các tổ chuyên môn, tổ văn phòng; Đoàn TNCSHCM; Lưu: VT
 NỘI DUNG:
 2) Sau nhãn NỘI DUNG, chỉ viết phần thân công văn. Không viết quốc hiệu, tiêu ngữ, tên cơ quan, số ký hiệu, địa danh ngày tháng, trích yếu, Kính gửi, Nơi nhận, chức vụ ký, họ tên người ký, dấu hoặc dòng "./." trong phần thân.
-3) Không dùng Markdown dưới bất kỳ hình thức nào: không dùng **, *, #, dấu gạch đầu dòng -, code block, bảng hoặc JSON.
+3) Không dùng Markdown dưới bất kỳ hình thức nào: không dùng **, *, #, dấu gạch đầu dòng -, code block, bảng hoặc JSON. Được phép dùng số thứ tự và đề mục thuần văn bản như "I.", "II.", "1.", "1.1." khi chúng tương ứng với sườn của văn bản nguồn.
 4) Không viết lời mở đầu như "Dưới đây là...", không viết giải thích, nhận xét, lưu ý hoặc lời kết ngoài 5 phần bắt buộc.
 5) Phần SỐ KÝ HIỆU phải dùng đúng số, ký hiệu đã có trong thông tin đầu vào. Không tự tạo số mới. Nếu chưa có số, ghi đúng: SỐ KÝ HIỆU: /THPTĐBK.
 6) Phần TRÍCH YẾU phải ngắn gọn, bắt đầu bằng "V/v" khi phù hợp với nội dung trao đổi, đề nghị, hướng dẫn hoặc triển khai công việc.
-7) Phần KÍNH GỬI phải giữ đúng danh sách đã nêu trong mẫu đầu ra. Không tự thêm hoặc bỏ đối tượng nhận.
-8) Phần NƠI NHẬN phải giữ đúng danh sách đã nêu trong mẫu đầu ra, giống phần Nơi nhận của kế hoạch. Không lặp lại nhãn "Nơi nhận:" trong giá trị.
-9) Phần thân bắt đầu bằng một câu nêu rõ mục đích ban hành công văn, sau đó diễn đạt yêu cầu, nội dung triển khai, trách nhiệm hoặc chế độ báo cáo theo thông tin đầu vào. Nếu có câu dẫn kết thúc bằng cụm "nội dung sau" thì phải viết "nội dung sau:"; không dùng "nội dung sau.". Không viết dòng "Thời gian thực hiện:". Đoạn cuối cùng bắt buộc phải là: "Trường THPT Đốc Binh Kiều đề nghị các tổ chuyên môn, tổ văn phòng, giáo viên chủ nhiệm và Đoàn TNCSHCM quan tâm, phối hợp thực hiện và nghiêm túc triển khai thực hiện và báo cáo kịp thời các diễn biến bất thường về trường để tổng hợp báo cáo Sở GDĐT./." Mỗi đoạn viết trên một dòng riêng.
-10) Chỉ sử dụng số liệu, tên người, chức vụ, cơ quan, địa danh, thời hạn và nhiệm vụ có trong văn bản nguồn hoặc thông tin trường được cung cấp. Không tự bịa hoặc suy luận thêm.
-11) Khi dữ liệu cho phép, nêu rõ đơn vị hoặc cá nhân thực hiện, phối hợp, thời hạn và kết quả cần đạt. Nếu chưa đủ dữ liệu, diễn đạt khái quát, không tự gán tên cá nhân hoặc chỉ tiêu mới.
-12) Văn phong hành chính, mạch lạc, trang trọng, ngắn gọn; nội dung phải có thể đưa thẳng vào DOCX mà không cần xóa ký hiệu định dạng.
+7) Phần KÍNH GỬI phải giữ nguyên đúng một dòng mẫu đầu ra: "Các tổ chuyên môn, tổ văn phòng; Giáo viên chủ nhiệm; Đoàn TNCS HCM trường." Không dùng danh sách Kính gửi trong văn bản nguồn và không tự thêm hoặc bỏ đối tượng nhận.
+8) Phần NƠI NHẬN phải giữ nguyên đúng một dòng mẫu đầu ra: "Sở GDĐT Đồng Tháp (báo cáo); Hiệu trưởng, các Phó Hiệu trưởng; Các tổ chuyên môn, tổ văn phòng; Đoàn TNCSHCM; Lưu: VT". Không dùng danh sách Nơi nhận trong văn bản nguồn, không lặp lại nhãn "Nơi nhận:" trong giá trị và không tự thêm hoặc bỏ đối tượng nhận.
+9) Phần thân là bản chuyển thể đầy đủ, bám sát nội dung và sườn của văn bản nguồn cấp trên để áp dụng tại Trường THPT Đốc Binh Kiều; không được tóm tắt thành vài ý chung chung hoặc bỏ các nhiệm vụ, yêu cầu, chỉ tiêu, thời hạn, quy trình, trách nhiệm và chế độ báo cáo có trong nguồn. Phần thân bắt đầu bằng một câu nêu rõ mục đích ban hành công văn, sau đó triển khai đầy đủ các nội dung tương ứng của nguồn. Nếu văn bản nguồn có các mục lớn, mục nhỏ hoặc các ý được đánh số, phải giữ nguyên số lượng, thứ tự, cấp độ đánh số và tiêu đề của các mục đó; ví dụ nguồn có 4 mục nhỏ thì kết quả cũng phải có đủ 4 mục nhỏ tương ứng. Mỗi mục nguồn phải có nội dung chuyển thể tương ứng, không gộp nhiều mục thành một, không tự tạo mục mới. Nếu có câu dẫn kết thúc bằng cụm "nội dung sau" thì phải viết "nội dung sau:"; không dùng "nội dung sau.". Không viết dòng "Thời gian thực hiện:". Không viết câu có dạng "Thời hạn hoàn thành: báo cáo kết quả về Sở GDĐT qua Văn phòng nhà trường theo đúng thời hạn yêu cầu" hoặc bất kỳ câu báo cáo, kiểm tra, đôn đốc chung chung nào không có mốc thời hạn cụ thể từ thông tin đầu vào. Đoạn cuối cùng bắt buộc phải là: "Trường THPT Đốc Binh Kiều đề nghị các tổ chuyên môn, tổ văn phòng, giáo viên chủ nhiệm và Đoàn TNCSHCM quan tâm, phối hợp thực hiện và nghiêm túc triển khai thực hiện và báo cáo kịp thời các diễn biến bất thường về trường để tổng hợp báo cáo Sở GDĐT./." Mỗi đoạn và mỗi đề mục viết trên một dòng riêng.
+10) Chỉ sử dụng số liệu, tên người, chức vụ, cơ quan, địa danh, thời hạn và nhiệm vụ có trong văn bản nguồn hoặc thông tin trường được cung cấp. Riêng đầu mối liên hệ của cơ quan cấp trên trong văn bản nguồn không được sao chép vào công văn của trường.
+11) Khi cần nêu đầu mối liên hệ để xử lý khó khăn, vướng mắc, chỉ viết: "Trong quá trình thực hiện, nếu có khó khăn, vướng mắc, đề nghị báo cáo Ban Giám hiệu nhà trường (thầy Nguyễn Minh Trí) để được hướng dẫn, phối hợp kịp thời." Không nêu tên, chức vụ, số điện thoại hoặc cơ quan của chuyên viên Sở hay cơ quan ngoài trường. Khi dữ liệu cho phép, nêu rõ đơn vị hoặc cá nhân thực hiện, phối hợp, thời hạn và kết quả cần đạt; nếu chưa có mốc thời hạn cụ thể thì không viết câu thời hạn hoặc báo cáo chung chung.
+12) Khi chuyển thể, thay cơ quan ban hành/chủ trì ở cấp trên bằng Trường THPT Đốc Binh Kiều hoặc Ban Giám hiệu; thay đối tượng cấp tỉnh, cấp huyện hoặc đơn vị trực thuộc Sở bằng đúng đối tượng thực hiện phù hợp trong trường như tổ chuyên môn, tổ văn phòng, giáo viên chủ nhiệm, Đoàn TNCSHCM, giáo viên, nhân viên hoặc học sinh. Chuyển nhiệm vụ quản lý cấp trên thành nhiệm vụ tổ chức thực hiện, tuyên truyền, hướng dẫn, theo dõi hoặc báo cáo của nhà trường; không giữ các nội dung vượt thẩm quyền nhà trường. Chỉ điều chỉnh chủ thể, đối tượng, cách thực hiện và thuật ngữ theo đặc thù trường THPT; giữ nguyên ý nghĩa, mức độ yêu cầu và các dữ kiện áp dụng được của từng mục nguồn.
+13) Văn phong hành chính, mạch lạc, trang trọng, đầy đủ; nội dung phải có thể đưa thẳng vào DOCX mà không cần xóa ký hiệu định dạng.
 
 THÔNG TIN ĐẦU VÀO:
 - Mục đích, yêu cầu cần ban hành công văn: [DIEN_YEU_CAU]
@@ -32,13 +33,19 @@ THÔNG TIN ĐẦU VÀO:
 
 QUY TẮC ĐỌC NGUỒN:
 - Phải đọc toàn bộ văn bản nguồn trước khi soạn; chỉ lấy thông tin đã xác nhận từ nguồn và thông tin trường được cung cấp.
+- Trước khi viết, lập đối chiếu nội bộ từng mục, tiểu mục và ý đánh số trong văn bản nguồn với phần chuyển thể tương ứng; không in phần đối chiếu này ra kết quả.
+- Không lược bỏ mục hoặc ý thực hiện được chỉ vì văn bản nguồn dài. Chỉ được bỏ một mục khi đó là thông tin đầu trang, cuối trang, nơi nhận, chữ ký, đầu mối của cơ quan ngoài trường hoặc nội dung hoàn toàn vượt thẩm quyền của Trường THPT; không được thay bằng một câu tóm tắt chung chung.
 - File thông tin trường chỉ được dùng để lấy dữ kiện đã xác nhận về trường, nhân sự, tổ chức và địa bàn; không suy ra thông tin mới từ tên file.
 - Nếu chưa có thông tin nào để xác định nội dung công văn, hãy trả đúng một câu: "CHƯA ĐỦ DỮ LIỆU SOẠN CÔNG VĂN".
 
 TỰ KIỂM TRA TRƯỚC KHI TRẢ LỜI, KHÔNG IN PHẦN KIỂM TRA:
 - Kiểm tra có đủ và đúng thứ tự 5 nhãn bắt buộc.
 - Kiểm tra phần thân không chứa đầu trang, cuối trang, Markdown hoặc lời dẫn.
-- Kiểm tra số ký hiệu, đối tượng Kính gửi và Nơi nhận không có dữ liệu tự tạo.
+- Kiểm tra số ký hiệu, Kính gửi và Nơi nhận đúng nguyên văn mẫu đầu ra; không dùng danh sách người nhận của văn bản nguồn.
+- Kiểm tra phần thân không sao chép đầu mối liên hệ của Sở hoặc cơ quan ngoài trường; nếu có câu liên hệ thì chỉ liên hệ Ban Giám hiệu nhà trường (thầy Nguyễn Minh Trí).
+- Kiểm tra không có câu thời hạn, báo cáo, kiểm tra hoặc đôn đốc chung chung khi không có mốc thời hạn cụ thể từ thông tin đầu vào.
+- Kiểm tra từng mục, tiểu mục và ý đánh số của văn bản nguồn đều có phần chuyển thể tương ứng; số lượng, thứ tự, cấp độ và tiêu đề mục trong kết quả phải khớp với sườn nguồn, trừ các phần được phép bỏ theo Quy tắc đọc nguồn.
+- Kiểm tra chủ thể, đối tượng và nhiệm vụ đã được điều chỉnh phù hợp với trường THPT nhưng không làm mất ý chính, chỉ tiêu, thời hạn hoặc trách nhiệm áp dụng được từ văn bản nguồn.
 - Kiểm tra dòng cuối cùng của phần thân là một đoạn nội dung thực tế của công văn.
 
 Chỉ trả nội dung theo đúng định dạng 5 phần nêu trên.
