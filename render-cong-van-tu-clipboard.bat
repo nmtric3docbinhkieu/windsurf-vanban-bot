@@ -58,4 +58,6 @@ if errorlevel 1 (
 
 echo.
 echo [OK] Da tao DOCX trong thu muc van-ban-di.
-pause
+echo Cua so se tu dong dong sau 3 giay...
+timeout /t 3 >nul
+exit /b 0
