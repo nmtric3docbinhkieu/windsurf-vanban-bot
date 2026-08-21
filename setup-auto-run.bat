@@ -45,8 +45,8 @@ schtasks /create ^
     /tr "%ComSpec% /d /c \"\"%RUNNER_PATH%\"\"" ^
     /sc onlogon ^
     /rl highest ^
-    /f ^
-    /np
+    /it ^
+    /f
 
 if errorlevel 1 (
     echo [WARN] Tao task voi quyen cao nhat that bai. Thu lai voi quyen user hien tai...
@@ -54,7 +54,8 @@ if errorlevel 1 (
         /tn "VanBan-Auto-Startup" ^
         /tr "%ComSpec% /d /c \"\"%RUNNER_PATH%\"\"" ^
         /sc onlogon ^
-        /f
+            /it ^
+            /f
 
     if errorlevel 1 (
         echo [WARN] Khong the tao task scheduler. Chuyen sang Startup folder...

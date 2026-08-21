@@ -42,4 +42,36 @@ async function notifyNewVanBan(vanBan) {
   }
 }
 
-module.exports = { notifyNewVanBan };
+async function notifyScanCompleted({ newDocumentCount, downloadedFileCount }) {
+  if (!BOT_TOKEN || !CHAT_ID) {
+    console.log('   ⚠️ Chưa cấu hình Telegram, bỏ qua gửi xác nhận quét');
+    return;
+  }
+
+  const checkedAt = new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' });
+  const result = newDocumentCount === 0
+    ? 'Không phát hiện văn bản mới.'
+    : `Phát hiện ${newDocumentCount} văn bản mới, đã tải ${downloadedFileCount} tệp.`;
+  const message = `✅ *ĐÃ QUÉT VĂN BẢN*\n\n⏰ Thời gian: ${checkedAt}\n📋 ${result}`;
+
+  try {
+    const response = await axios.post(
+      `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`,
+      {
+        chat_id: CHAT_ID,
+        text: message,
+        parse_mode: 'Markdown'
+      }
+    );
+
+    if (response.data && response.data.ok) {
+      console.log('   ✅ Đã gửi xác nhận quét qua Telegram');
+    } else {
+      console.log('   ⚠️ Lỗi gửi xác nhận quét Telegram:', response.data);
+    }
+  } catch (error) {
+    console.error('   ❌ Lỗi gửi xác nhận quét Telegram:', error.message);
+  }
+}
+
+module.exports = { notifyNewVanBan, notifyScanCompleted };

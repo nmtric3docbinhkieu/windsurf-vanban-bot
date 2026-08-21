@@ -7,7 +7,10 @@ const DATA_ROOT = process.env.VANBAN_DATA_ROOT
   : path.join(BOT_DIR, '..');
 
 require('dotenv').config({ path: path.join(BOT_DIR, '.env') });
-const { notifyNewVanBan: notifyTelegram } = require('../integrations/telegram-notify');
+const {
+  notifyNewVanBan: notifyTelegram,
+  notifyScanCompleted
+} = require('../integrations/telegram-notify');
 
 const USERNAME = process.env.VPDT_USERNAME;
 const PASSWORD = process.env.VPDT_PASSWORD;
@@ -732,6 +735,11 @@ async function crawlAndDownload() {
       const filePath = path.join(downloadsDir, file);
       const stats = fs.statSync(filePath);
       console.log(`   - ${file} (${stats.size} bytes)`);
+    });
+
+    await notifyScanCompleted({
+      newDocumentCount: vanBanMoiCount,
+      downloadedFileCount: fileTaiVeCount
     });
     
   } catch (error) {

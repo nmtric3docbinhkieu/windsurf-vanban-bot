@@ -96,6 +96,7 @@ def parse_cong_van_text(raw_text: str) -> dict:
         if not re.match(r"^thời\s*gian\s*thực\s*hiện\s*:", line.strip(), re.IGNORECASE)
     ]
     content = "\n".join(content_lines).strip().rstrip()
+    content = re.sub(r"nội\s+dung\s+sau\.", "nội dung sau:", content, flags=re.IGNORECASE)
     if content.endswith(CAU_KET_CONG_VAN):
         content = content[:-len(CAU_KET_CONG_VAN)].rstrip()
     content = f"{content}\n{CAU_KET_CONG_VAN}".strip()

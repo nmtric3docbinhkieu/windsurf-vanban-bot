@@ -15,7 +15,7 @@ TRÍCH YẾU: V/v thực hiện việc A
 KÍNH GỬI: Tổ A; Tổ B
 NƠI NHẬN: Tổ A; Tổ B; Lưu: VT
 NỘI DUNG:
-Trường THPT Đốc Binh Kiều đề nghị Tổ A thực hiện việc A.
+Trường THPT Đốc Binh Kiều đề nghị Tổ A thực hiện nội dung sau.
 Thời gian thực hiện: Theo kế hoạch.
 Thời hạn thực hiện theo nội dung đã được cung cấp."""
 
@@ -34,6 +34,8 @@ assert result["noi_nhan"] == (
 	"Các tổ chuyên môn, tổ văn phòng; Đoàn TNCSHCM; Lưu: VT"
 )
 assert result["noi_dung"].startswith("Trường THPT Đốc Binh Kiều")
+assert "nội dung sau:" in result["noi_dung"]
+assert "nội dung sau." not in result["noi_dung"]
 assert "Thời gian thực hiện:" not in result["noi_dung"]
 assert result["noi_dung"].endswith(CAU_KET_CONG_VAN)
 assert _safe_file_tag("V/v thực hiện việc A") == "Vv_thực_hiện_việc_A"

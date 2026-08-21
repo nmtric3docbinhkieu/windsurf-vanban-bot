@@ -243,11 +243,13 @@ def _insert_blocks(doc, blocks):
     style_config = load_style_config()
     styles = style_config.get("styles", {})
 
-    for block in blocks:
+    for index, block in enumerate(blocks):
         block_type = block["type"]
         block_style = styles.get(block_type, styles.get("paragraph", {}))
+        is_first_or_last = index in {0, len(blocks) - 1}
+        text = block["text"] if is_first_or_last else f"- {block['text']}"
         paragraph = doc.add_paragraph()
-        run = paragraph.add_run(block["text"])
+        run = paragraph.add_run(text)
         set_paragraph_format(paragraph, block_type, style_config)
         set_font(run, bold=block_style.get("bold", False), size=14, style_config=style_config)
 
